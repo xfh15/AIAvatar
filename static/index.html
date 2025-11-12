@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Avatar数字人交互平台</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="apple-touch-icon" href="favicon.svg">
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <style>
@@ -24,12 +29,32 @@
             color: var(--text-color);
             min-height: 100vh;
             padding-top: 20px;
+            /* 移动端优化 */
+            -webkit-text-size-adjust: 100%;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
 
         .dashboard-container {
             max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
+        }
+        
+        /* 移动端响应式优化 */
+        @media (max-width: 768px) {
+            .dashboard-container {
+                padding: 10px;
+            }
+            
+            body {
+                padding-top: 10px;
+            }
+            
+            h1 {
+                font-size: 1.5rem !important;
+                margin-bottom: 1rem !important;
+            }
         }
 
         .card {
@@ -58,6 +83,15 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            min-height: 300px;
+        }
+        
+        /* 移动端视频容器优化 */
+        @media (max-width: 768px) {
+            .video-container {
+                min-height: 250px;
+                border-radius: 8px;
+            }
         }
 
         video {
@@ -65,10 +99,24 @@
             max-height: 100%;
             display: block;
             border-radius: var(--border-radius);
+            /* 移动端视频优化 */
+            object-fit: contain;
+        }
+        
+        @media (max-width: 768px) {
+            video {
+                border-radius: 8px;
+            }
         }
 
         .controls-container {
             padding: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .controls-container {
+                padding: 15px;
+            }
         }
 
         .btn-primary {
@@ -129,6 +177,15 @@
             background-color: #f8f9fa;
             border-radius: var(--border-radius);
             border: 1px solid #ced4da;
+            /* 移动端滚动优化 */
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        @media (max-width: 768px) {
+            .asr-container {
+                height: 250px;
+                padding: 10px;
+            }
         }
 
         .asr-text {
@@ -191,6 +248,13 @@
             padding: 10px 20px;
             border-radius: var(--border-radius) var(--border-radius) 0 0;
         }
+        
+        @media (max-width: 768px) {
+            .nav-tabs .nav-link {
+                padding: 8px 12px;
+                font-size: 0.9rem;
+            }
+        }
 
         .nav-tabs .nav-link.active {
             color: var(--primary-color);
@@ -203,6 +267,12 @@
             padding: 20px;
             background-color: var(--card-bg);
             border-radius: 0 0 var(--border-radius) var(--border-radius);
+        }
+        
+        @media (max-width: 768px) {
+            .tab-content {
+                padding: 15px;
+            }
         }
 
         .settings-panel {
@@ -233,6 +303,21 @@
             transition: all 0.2s ease;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             margin: 0 auto;
+            /* 移动端触摸优化 */
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+        
+        @media (max-width: 768px) {
+            .voice-record-btn {
+                width: 70px;
+                height: 70px;
+            }
+            
+            .voice-record-btn i {
+                font-size: 28px !important;
+            }
         }
         
         .voice-record-btn:hover {
@@ -275,6 +360,176 @@
                 box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
             }
         }
+        
+        /* 移动端按钮优化 */
+        @media (max-width: 768px) {
+            .btn {
+                padding: 12px 16px;
+                font-size: 0.9rem;
+                border-radius: 8px;
+            }
+            
+            .btn-lg {
+                padding: 16px 20px;
+                font-size: 1rem;
+            }
+            
+            .form-control {
+                padding: 12px 15px;
+                font-size: 16px; /* 防止iOS缩放 */
+                border-radius: 8px;
+            }
+            
+            textarea.form-control {
+                min-height: 100px;
+            }
+        }
+        
+        /* 移动端卡片优化 */
+        @media (max-width: 768px) {
+            .card {
+                margin-bottom: 15px;
+                border-radius: 12px;
+            }
+            
+            .card-header {
+                padding: 12px 15px;
+                font-size: 0.95rem;
+            }
+            
+            .card-body {
+                padding: 15px;
+            }
+        }
+        
+        /* 移动端输入组优化 */
+        @media (max-width: 768px) {
+            .input-group .btn {
+                min-width: 60px;
+            }
+            
+            .input-group textarea {
+                border-top-right-radius: 8px !important;
+                border-bottom-right-radius: 0 !important;
+            }
+            
+            .input-group .btn {
+                border-top-left-radius: 0 !important;
+                border-bottom-left-radius: 8px !important;
+                border-top-right-radius: 8px !important;
+                border-bottom-right-radius: 8px !important;
+            }
+        }
+        
+        /* 移动端横屏优化 */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .video-container {
+                min-height: 200px;
+            }
+            
+            .asr-container {
+                height: 200px;
+            }
+            
+            h1 {
+                font-size: 1.3rem !important;
+                margin-bottom: 0.5rem !important;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            .dashboard-container {
+                padding: 8px;
+            }
+            
+            .controls-container {
+                padding: 10px;
+            }
+            
+            .voice-record-btn {
+                width: 65px;
+                height: 65px;
+            }
+            
+            .voice-record-label {
+                font-size: 12px;
+            }
+        }
+        
+        /* 移动端按钮按下效果 */
+        .btn-pressed {
+            transform: scale(0.95) !important;
+            opacity: 0.8 !important;
+        }
+        
+        /* 移动端特定样式 */
+        .mobile-device .btn {
+            min-height: 44px; /* iOS 推荐的最小触摸目标 */
+        }
+        
+        .mobile-device .voice-record-btn {
+            min-height: 60px;
+            min-width: 60px;
+        }
+        
+        /* 移动端滚动条优化 */
+        @media (max-width: 768px) {
+            .asr-container::-webkit-scrollbar {
+                width: 4px;
+            }
+            
+            .asr-container::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 2px;
+            }
+            
+            .asr-container::-webkit-scrollbar-thumb {
+                background: #c1c1c1;
+                border-radius: 2px;
+            }
+            
+            .asr-container::-webkit-scrollbar-thumb:hover {
+                background: #a8a8a8;
+            }
+        }
+        
+        /* 移动端输入焦点优化 */
+        @media (max-width: 768px) {
+            .form-control:focus {
+                transform: none;
+                box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
+            }
+        }
+        
+        /* 移动端卡片间距优化 */
+        @media (max-width: 768px) {
+            .row > [class*="col-"] {
+                margin-bottom: 1rem;
+            }
+            
+            .row > [class*="col-"]:last-child {
+                margin-bottom: 0;
+            }
+        }
+        
+        /* 移动端状态指示器优化 */
+        @media (max-width: 768px) {
+            .status-indicator {
+                width: 12px;
+                height: 12px;
+            }
+            
+            .card-header {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 0.5rem;
+            }
+            
+            .card-header > div {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -287,12 +542,15 @@
 
         <div class="row">
             <!-- 视频区域 -->
-            <div class="col-lg-8">
+            <div class="col-lg-8 col-md-12 order-1 order-lg-1">
                 <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <div>
+                    <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+                        <div class="d-flex align-items-center">
                             <span class="status-indicator status-disconnected" id="connection-status"></span>
                             <span id="status-text">未连接</span>
+                        </div>
+                        <div class="d-none d-md-block">
+                            <small class="text-light opacity-75">AI Avatar 数字人</small>
                         </div>
                     </div>
                     <div class="card-body p-0">
@@ -306,21 +564,25 @@
                         
                         <div class="controls-container">
                             <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <button class="btn btn-primary w-100" id="start">
+                                <div class="col-md-6 col-12 mb-3">
+                                    <button class="btn btn-primary w-100 btn-lg" id="start">
                                         <i class="bi bi-play-fill"></i> 开始连接
                                     </button>
-                                    <button class="btn btn-danger w-100" id="stop" style="display: none;">
+                                    <button class="btn btn-danger w-100 btn-lg" id="stop" style="display: none;">
                                         <i class="bi bi-stop-fill"></i> 停止连接
                                     </button>
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <div class="d-flex">
-                                        <button class="btn btn-outline-primary flex-grow-1 me-2" id="btn_start_record">
-                                            <i class="bi bi-record-fill"></i> 开始录制
+                                <div class="col-md-6 col-12 mb-3">
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-outline-primary flex-grow-1" id="btn_start_record">
+                                            <i class="bi bi-record-fill"></i> 
+                                            <span class="d-none d-sm-inline">开始录制</span>
+                                            <span class="d-sm-none">录制</span>
                                         </button>
                                         <button class="btn btn-outline-danger flex-grow-1" id="btn_stop_record" disabled>
-                                            <i class="bi bi-stop-fill"></i> 停止录制
+                                            <i class="bi bi-stop-fill"></i> 
+                                            <span class="d-none d-sm-inline">停止录制</span>
+                                            <span class="d-sm-none">停止</span>
                                         </button>
                                     </div>
                                 </div>
@@ -341,7 +603,7 @@
             </div>
 
             <!-- 右侧交互 -->
-            <div class="col-lg-4">
+            <div class="col-lg-4 col-md-12 order-2 order-lg-2">
                 <div class="card">
                     <div class="card-header">
                         <ul class="nav nav-tabs card-header-tabs" id="interaction-tabs" role="tablist">
@@ -364,10 +626,12 @@
                                 </div>
                                 
                                 <form id="chat-form">
-                                    <div class="input-group mb-3">
+                                    <div class="mb-3">
                                         <textarea class="form-control" id="chat-message" rows="3" placeholder="输入您想对数字人说的话..."></textarea>
-                                        <button class="btn btn-primary" type="submit">
-                                            <i class="bi bi-send"></i> 发送
+                                    </div>
+                                    <div class="d-grid">
+                                        <button class="btn btn-primary btn-lg" type="submit">
+                                            <i class="bi bi-send"></i> 发送消息
                                         </button>
                                     </div>
                                 </form>
@@ -384,11 +648,13 @@
                                 <form id="echo-form">
                                     <div class="mb-3">
                                         <label for="message" class="form-label">输入要朗读的文本</label>
-                                        <textarea class="form-control" id="message" rows="6" placeholder="输入您想让数字人朗读的文字..."></textarea>
+                                        <textarea class="form-control" id="message" rows="5" placeholder="输入您想让数字人朗读的文字..."></textarea>
                                     </div>
-                                    <button type="submit" class="btn btn-primary w-100">
-                                        <i class="bi bi-volume-up"></i> 朗读文本
-                                    </button>
+                                    <div class="d-grid">
+                                        <button type="submit" class="btn btn-primary btn-lg">
+                                            <i class="bi bi-volume-up"></i> 开始朗读
+                                        </button>
+                                    </div>
                                 </form>
                             </div>
                         </div>
@@ -407,11 +673,40 @@
 
 
     <script src="client.js"></script>
-    <script src="srs.sdk.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function() {
+            // 移动端检测
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            
+            // 移动端优化
+            if (isMobile || isTouch) {
+                // 添加移动端样式类
+                $('body').addClass('mobile-device');
+                
+                // 优化视频大小滑块在移动端的默认值
+                $('#video-size-slider').val('90');
+                $('#video-size-value').text('90%');
+                $('#video').css('width', '90%');
+                
+                // 移动端禁用视频右键菜单
+                $('#video').on('contextmenu', function(e) {
+                    e.preventDefault();
+                });
+                
+                // 移动端优化：防止双击缩放
+                let lastTouchEnd = 0;
+                $(document).on('touchend', function(event) {
+                    const now = (new Date()).getTime();
+                    if (now - lastTouchEnd <= 300) {
+                        event.preventDefault();
+                    }
+                    lastTouchEnd = now;
+                }, false);
+            }
+            
             $('#video-size-slider').on('input', function() {
                 const value = $(this).val();
                 $('#video-size-value').text(value + '%');
@@ -626,11 +921,42 @@
                 };
             }
             
-            // 按住说话按钮事件
+            // 按住说话按钮事件 - 移动端优化
+            let touchStartTime = 0;
+            let recordingTimeout;
+            
             $('#voice-record-btn').on('mousedown touchstart', function(e) {
                 e.preventDefault();
-                startRecording();
-            }).on('mouseup mouseleave touchend', function() {
+                e.stopPropagation();
+                touchStartTime = Date.now();
+                
+                // 添加视觉反馈
+                $(this).addClass('btn-pressed');
+                
+                // 延迟启动录音，避免误触
+                recordingTimeout = setTimeout(function() {
+                    startRecording();
+                }, isMobile ? 200 : 100);
+                
+            }).on('mouseup mouseleave touchend touchcancel', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                $(this).removeClass('btn-pressed');
+                
+                // 清除延迟启动
+                if (recordingTimeout) {
+                    clearTimeout(recordingTimeout);
+                }
+                
+                // 检查是否是短按（小于200ms）
+                const touchDuration = Date.now() - touchStartTime;
+                if (touchDuration < 200 && !isRecording) {
+                    // 短按时显示提示
+                    showToast('请长按录音按钮进行语音输入');
+                    return;
+                }
+                
                 if (isRecording) {
                     stopRecording();
                 }
@@ -734,9 +1060,6 @@
                     updateConnectionStatus('disconnected');
                 };
             }
-
-            // SRS WebRTC播放功能
-            var sdk = null; // 全局处理器，用于在重新发布时进行清理
 
         });
     </script>

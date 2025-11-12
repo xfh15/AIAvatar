@@ -19,31 +19,58 @@ import queue
 from queue import Queue
 from threading import Thread, Event
 import torch.multiprocessing as mp
-
-from lipasr import LipASR
-from basereal import BaseReal
-
 from tqdm import tqdm
+
+from src.basereal import BaseReal
 from src.log import logger
+from src.lipasr import LipASR
 
 device = "cpu"  # 客户端使用CPU
+pwd_path = os.path.dirname(os.path.abspath(__file__))
+root_dir = os.path.dirname(pwd_path)
 
 def load_avatar(avatar_id):
     """加载avatar数据"""
-    avatar_path = f"./data/avatars/{avatar_id}"
+    # avatar_path = f"./data/avatars/{avatar_id}"
+    avatar_path = os.path.join(root_dir, avatar_id)
     full_imgs_path = f"{avatar_path}/full_imgs" 
     face_imgs_path = f"{avatar_path}/face_imgs" 
     coords_path = f"{avatar_path}/coords.pkl"
     
-    with open(coords_path, 'rb') as f:
-        coord_list_cycle = pickle.load(f)
-    input_img_list = glob.glob(os.path.join(full_imgs_path, '*.[jpJP][pnPN]*[gG]'))
+    logger.info(f'root_dir: {root_dir}')
+    logger.info(f'avatar_id: {avatar_id}')
+    logger.info(f'Loading avatar from: {avatar_path}')
+    logger.info(f'Full images path: {full_imgs_path}')
+    logger.info(f'Face images path: {face_imgs_path}')
+
+    if os.path.exists(coords_path):
+        with open(coords_path, 'rb') as f:
+            coord_list_cycle = pickle.load(f)
+        logger.info(f'loaded coords from {coords_path}, count: {len(coord_list_cycle)}')
+    else:
+        coord_list_cycle = None
+        logger.warning(f'coords.pkl not found at {coords_path}')
+    
+    full_glob_pattern = os.path.join(full_imgs_path, '*.[jpJP][pnPN]*[gG]')
+    input_img_list = glob.glob(full_glob_pattern)
+    logger.info(f'Found {len(input_img_list)} full images')
+    if len(input_img_list) > 0:
+        logger.info(f'First full image: {input_img_list[0]}')
     input_img_list = sorted(input_img_list, key=lambda x: int(os.path.splitext(os.path.basename(x))[0]))
     frame_list_cycle = read_imgs(input_img_list)
     
-    input_face_list = glob.glob(os.path.join(face_imgs_path, '*.[jpJP][pnPN]*[gG]'))
+    face_glob_pattern = os.path.join(face_imgs_path, '*.[jpJP][pnPN]*[gG]')
+    input_face_list = glob.glob(face_glob_pattern)
+    logger.info(f'Found {len(input_face_list)} face images')
     input_face_list = sorted(input_face_list, key=lambda x: int(os.path.splitext(os.path.basename(x))[0]))
     face_list_cycle = read_imgs(input_face_list)
+    
+    if len(face_list_cycle) == 0:
+        raise ValueError(f"No face images loaded from {face_imgs_path}. Please check if the avatar was generated correctly.")
+    if len(frame_list_cycle) == 0:
+        raise ValueError(f"No full images loaded from {full_imgs_path}. Please check if the avatar was generated correctly.")
+    if coord_list_cycle is None or len(coord_list_cycle) == 0:
+        raise ValueError(f"No coordinates loaded from {coords_path}. Please check if the avatar was generated correctly.")
 
     return frame_list_cycle, face_list_cycle, coord_list_cycle
 
@@ -58,12 +85,15 @@ def read_imgs(img_list):
 
 
 def __mirror_index(size, index):
+    if size == 0:
+        logger.error(f"__mirror_index called with size=0, index={index}")
+        raise ValueError("Avatar size is 0. Please check if the avatar was loaded correctly.")
     turn = index // size
     res = index % size
     if turn % 2 == 0:
         return res
     else:
-        return size - res - 1 
+        return size - res - 1
 
 
 class RemoteGPUClient:
@@ -227,7 +257,7 @@ def inference(quit_event, batch_size, face_list_cycle, audio_feat_queue, audio_o
             
             if count >= 100:
                 avg_fps = count / counttime
-                logger.info(f"------actual avg final fps:{avg_fps:.4f}")
+                logger.debug(f"actual avg final fps:{avg_fps:.4f}")
                 count = 0
                 counttime = 0
                 
@@ -301,7 +331,7 @@ class LipReal(BaseReal):
             self.asr.run_step()
 
             if video_track and video_track._queue.qsize() >= 5:
-                logger.debug('sleep qsize=%d', video_track._queue.qsize())
+                logger.debug(f'sleep qsize={video_track._queue.qsize()}')
                 time.sleep(0.04 * video_track._queue.qsize() * 0.8)
                 
         logger.info('lipreal thread stop')

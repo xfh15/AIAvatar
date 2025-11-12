@@ -17,9 +17,9 @@
 
 import numpy as np
 
+from src.baseasr import BaseASR
+from src.wav2lip import audio
 
-from baseasr import BaseASR
-from wav2lip import audio
 
 class LipASR(BaseASR):
 

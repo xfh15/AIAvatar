@@ -37,6 +37,9 @@ from basereal import BaseReal
 from tqdm import tqdm
 from src.log import logger
 
+pwd_path = os.path.dirname(os.path.abspath(__file__))
+root_dir = os.path.dirname(pwd_path)
+
 device = "cuda" if torch.cuda.is_available() else (
     "mps" if (hasattr(torch.backends, "mps") and torch.backends.mps.is_available()) else "cpu")
 
@@ -65,7 +68,8 @@ def load_model(path):
 
 
 def load_avatar(avatar_id):
-    avatar_path = f"./data/avatars/{avatar_id}"
+    # avatar_path = f"./data/avatars/{avatar_id}"
+    avatar_path = os.path.join(root_dir, avatar_id)
     full_imgs_path = f"{avatar_path}/full_imgs"
     face_imgs_path = f"{avatar_path}/face_imgs"
     coords_path = f"{avatar_path}/coords.pkl"

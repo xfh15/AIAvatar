@@ -34,7 +34,7 @@ from threading import Thread, Event
 from enum import Enum
 
 if TYPE_CHECKING:
-    from basereal import BaseReal
+    from src.basereal import BaseReal
 
 from src.log import logger
 from src.config import get_doubao_appid, get_doubao_token

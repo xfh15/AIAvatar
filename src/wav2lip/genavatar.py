@@ -35,7 +35,7 @@ def video2imgs(vid_path, save_path, ext='.png', cut_frame=10000000):
             break
         ret, frame = cap.read()
         if ret:
-            cv2.putText(frame, "LiveTalking", (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (128, 128, 128), 1)
+            cv2.putText(frame, "", (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (128, 128, 128), 1)
             cv2.imwrite(f"{save_path}/{count:08d}.png", frame)
             count += 1
         else:
@@ -111,7 +111,6 @@ if __name__ == "__main__":
     osmakedirs([avatar_path, full_imgs_path, face_imgs_path])
     print(args)
 
-    # if os.path.isfile(args.video_path):
     video2imgs(args.video_path, full_imgs_path, ext='png')
     input_img_list = sorted(glob(os.path.join(full_imgs_path, '*.[jpJP][pnPN]*[gG]')))
 

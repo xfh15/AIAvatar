@@ -151,7 +151,7 @@ class BaseReal:
             self.custom_index[key] = 0
 
     def notify(self, eventpoint):
-        logger.info("notify:%s", eventpoint)
+        logger.debug(f"notify:{eventpoint}")
 
     def start_recording(self):
         """开始录制视频"""
@@ -252,14 +252,6 @@ class BaseReal:
             _last_silent_frame = None  # 静音帧缓存
             _last_speaking_frame = None  # 说话帧缓存
 
-        if self.opt.transport == 'virtualcam':
-            import pyvirtualcam
-            vircam = None
-
-            audio_tmp = queue.Queue(maxsize=3000)
-            audio_thread = Thread(target=play_audio, args=(quit_event, audio_tmp,), daemon=True, name="pyaudio_stream")
-            audio_thread.start()
-
         while not quit_event.is_set():
             try:
                 res_frame, idx, audio_frames = self.res_frame_queue.get(block=True, timeout=1)
@@ -316,33 +308,19 @@ class BaseReal:
                     combine_frame = current_frame
 
             cv2.putText(combine_frame, "LiveTalking", (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (128, 128, 128), 1)
-            if self.opt.transport == 'virtualcam':
-                if vircam == None:
-                    height, width, _ = combine_frame.shape
-                    vircam = pyvirtualcam.Camera(width=width, height=height, fps=25, fmt=pyvirtualcam.PixelFormat.BGR,
-                                                 print_fps=True)
-                vircam.send(combine_frame)
-            else:  # webrtc
-                image = combine_frame
-                new_frame = VideoFrame.from_ndarray(image, format="bgr24")
-                asyncio.run_coroutine_threadsafe(video_track._queue.put((new_frame, None)), loop)
+            image = combine_frame
+            new_frame = VideoFrame.from_ndarray(image, format="bgr24")
+            asyncio.run_coroutine_threadsafe(video_track._queue.put((new_frame, None)), loop)
             self.record_video_data(combine_frame)
 
             for audio_frame in audio_frames:
                 frame, type, eventpoint = audio_frame
                 frame = (frame * 32767).astype(np.int16)
 
-                if self.opt.transport == 'virtualcam':
-                    audio_tmp.put(frame.tobytes())  # TODO
-                else:  # webrtc
-                    new_frame = AudioFrame(format='s16', layout='mono', samples=frame.shape[0])
-                    new_frame.planes[0].update(frame.tobytes())
-                    new_frame.sample_rate = 16000
-                    asyncio.run_coroutine_threadsafe(audio_track._queue.put((new_frame, eventpoint)), loop)
+                # webrtc
+                new_frame = AudioFrame(format='s16', layout='mono', samples=frame.shape[0])
+                new_frame.planes[0].update(frame.tobytes())
+                new_frame.sample_rate = 16000
+                asyncio.run_coroutine_threadsafe(audio_track._queue.put((new_frame, eventpoint)), loop)
                 self.record_audio_data(frame)
-            if self.opt.transport == 'virtualcam':
-                vircam.sleep_until_next_frame()
-        if self.opt.transport == 'virtualcam':
-            audio_thread.join()
-            vircam.close()
         logger.info('basereal process_frames thread stop')
