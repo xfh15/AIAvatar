@@ -37,7 +37,6 @@ def load_avatar(avatar_id):
     face_imgs_path = f"{avatar_path}/face_imgs" 
     coords_path = f"{avatar_path}/coords.pkl"
     
-    logger.info(f'root_dir: {root_dir}')
     logger.info(f'avatar_id: {avatar_id}')
     logger.info(f'Loading avatar from: {avatar_path}')
     logger.info(f'Full images path: {full_imgs_path}')
@@ -54,8 +53,6 @@ def load_avatar(avatar_id):
     full_glob_pattern = os.path.join(full_imgs_path, '*.[jpJP][pnPN]*[gG]')
     input_img_list = glob.glob(full_glob_pattern)
     logger.info(f'Found {len(input_img_list)} full images')
-    if len(input_img_list) > 0:
-        logger.info(f'First full image: {input_img_list[0]}')
     input_img_list = sorted(input_img_list, key=lambda x: int(os.path.splitext(os.path.basename(x))[0]))
     frame_list_cycle = read_imgs(input_img_list)
     
@@ -322,18 +319,19 @@ class LipReal(BaseReal):
         process_thread = Thread(target=self.process_frames, args=(process_quit_event, loop, audio_track, video_track))
         process_thread.start()
 
-        count = 0
-        totaltime = 0
         _starttime = time.perf_counter()
         
         while not quit_event.is_set(): 
             t = time.perf_counter()
             self.asr.run_step()
 
+            # 流量控制：当视频帧队列积压过多时，暂停生产以避免延迟累积
             if video_track and video_track._queue.qsize() >= 5:
-                logger.debug(f'sleep qsize={video_track._queue.qsize()}')
-                time.sleep(0.04 * video_track._queue.qsize() * 0.8)
-                
+                queue_size = video_track._queue.qsize()
+                sleep_time = 0.04 * queue_size * 0.8
+                logger.debug(f'视频帧队列积压 [{queue_size}帧]，暂停生产 {sleep_time:.3f} 秒以控制延迟')
+                time.sleep(sleep_time)
+
         logger.info('lipreal thread stop')
 
         # 停止推理线程
