@@ -56,6 +56,14 @@ linux cuda环境搭建可以参考 [这篇文章](https://zhuanlan.zhihu.com/p/6
 将wav2lip.pth拷到本项目的models下;  
 将形象文件解压后整个文件夹拷到本项目的data目录下
 
+
+
+- 模型下载
+
+如果访问不了huggingface，在运行前
+```
+export HF_ENDPOINT=https://hf-mirror.com
+``` 
 ### 2.3 运行
 
 #### 方式一：使用启动脚本（推荐）
@@ -85,7 +93,7 @@ python main.py --port 8080
 ```
 
 **访问方式：**
-- WebRTC前端: http://127.0.0.1:8010/index.html
+- WebRTC前端: http://serverip:8010/index.html
 - 服务端需要开放端口 tcp:8010; udp:1-65536
 
 **首次运行说明：**
@@ -95,11 +103,6 @@ python main.py --port 8080
 
 用浏览器打开http://serverip:8010/index.html , 先点‘开始连接',播放数字人视频；然后在文本框输入任意文字，提交。数字人播报该段文字  
 
-- 模型下载
-如果访问不了huggingface，在运行前
-```
-export HF_ENDPOINT=https://hf-mirror.com
-``` 
 
 
 ## 性能
