@@ -33,9 +33,8 @@
 
 ![model](https://github.com/shibing624/AIAvatar/blob/main/docs/main.png)
 ## Cases
-<video src=https://github.com/shibing624/AIAvatar/blob/main/docs/long_hair_girl_demo.mp4></video>
 
-<video src=https://github.com/shibing624/AIAvatar/blob/main/docs/demo.mp4></video>
+<video src=https://github.com/shibing624/AIAvatar/releases/download/0.1.1/long_hair_girl_demo.mp4 controls preload></video>
 
 ## Install
 
