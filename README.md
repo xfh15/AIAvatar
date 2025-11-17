@@ -101,6 +101,39 @@ python main.py --avatar_id wav2lip_avatar_long_hair_girl --tts doubao --REF_FILE
 python main.py --port 8010
 ```
 
+#### 方式三：GPU服务远程部署（推荐用于生产环境）
+支持前后端分离部署，将GPU推理服务部署在GPU服务器上，前端服务部署在CPU服务器上。
+
+**步骤1：启动GPU服务（在GPU服务器上）**
+```bash
+# 启动Wav2Lip GPU推理服务，默认端口8080
+python src/gpu_wav2lip_service.py
+
+# 自定义端口和参数
+python src/gpu_wav2lip_service.py --port 8080 --batch_size 32 --fp16
+```
+
+**步骤2：启动前端服务（在CPU服务器上）**
+```bash
+# 指定GPU服务器地址，格式：http://gpu_server_ip:8080
+python main.py --gpu_server_url http://192.168.1.100:8080
+
+# 完整示例：指定形象和GPU服务器
+python main.py --avatar_id wav2lip_avatar_female_model --gpu_server_url http://192.168.1.100:8080 --port 8010
+```
+
+**GPU服务参数说明：**
+- `--port`: GPU服务监听端口，默认8080
+- `--batch_size`: 批处理大小，推荐16-64，默认32
+- `--fp16`: 启用FP16半精度推理，可提速30-50%，显存占用更小
+- `--model_path`: 模型路径，默认`./models/wav2lip.pth`
+
+**优势：**
+- 前端服务无需GPU，可在CPU服务器上运行
+- GPU资源集中管理，提高利用率
+- 支持多前端服务连接同一GPU服务
+- 便于横向扩展和负载均衡
+
 **访问方式：**
 - WebRTC前端: http://serverip:8010/index.html
 - 服务端需要开放端口 tcp:8010; udp:1-65536

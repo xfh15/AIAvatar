@@ -100,6 +100,39 @@ python main.py --avatar_id wav2lip_avatar_long_hair_girl --tts doubao --REF_FILE
 python main.py --port 8010
 ```
 
+#### Method 3: Remote GPU Service Deployment (Recommended for Production)
+Supports frontend-backend separation deployment. Deploy GPU inference service on GPU servers and frontend service on CPU servers.
+
+**Step 1: Start GPU Service (on GPU server)**
+```bash
+# Start Wav2Lip GPU inference service, default port 8080
+python src/gpu_wav2lip_service.py
+
+# Custom port and parameters
+python src/gpu_wav2lip_service.py --port 8080 --batch_size 32 --fp16
+```
+
+**Step 2: Start Frontend Service (on CPU server)**
+```bash
+# Specify GPU server address, format: http://gpu_server_ip:8080
+python main.py --gpu_server_url http://192.168.1.100:8080
+
+# Complete example: specify avatar and GPU server
+python main.py --avatar_id wav2lip_avatar_female_model --gpu_server_url http://192.168.1.100:8080 --port 8010
+```
+
+**GPU Service Parameters:**
+- `--port`: GPU service listening port, default 8080
+- `--batch_size`: Batch size, recommended 16-64, default 32
+- `--fp16`: Enable FP16 half-precision inference, 30-50% faster with less memory usage
+- `--model_path`: Model path, default `./models/wav2lip.pth`
+
+**Advantages:**
+- Frontend service requires no GPU, can run on CPU servers
+- Centralized GPU resource management, improved utilization
+- Supports multiple frontend services connecting to the same GPU service
+- Easy horizontal scaling and load balancing
+
 **Access Method:**
 - WebRTC Frontend: http://serverip:8010/index.html
 - Server needs to open ports tcp:8010; udp:1-65536
