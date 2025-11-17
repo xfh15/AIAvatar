@@ -1,42 +1,54 @@
-<p align="center">
-    <a href="./LICENSE"><img src="https://img.shields.io/badge/license-Apache%202-dfd.svg"></a>
-    <a href="https://github.com/shibing624/AIAvatar/releases"><img src="https://img.shields.io/github/v/release/shibing624/AIAvatar?color=ffa"></a>
-    <a href=""><img src="https://img.shields.io/badge/python-3.10+-aff.svg"></a>
-    <a href=""><img src="https://img.shields.io/badge/os-linux%2C%20win%2C%20mac-pink.svg"></a>
-</p>
+[**🇨🇳中文**](https://github.com/shibing624/AIAvatar/blob/main/README.md) | [**🌐English**](https://github.com/shibing624/AIAvatar/blob/main/README_EN.md)  | [**🤖模型/Models**](https://huggingface.co/shibing624/ai-avatar-wav2lip) 
 
-实时交互流式数字人，实现音视频同步对话。基本可以达到商用效果  
+<div align="center">
+  <a href="https://github.com/shibing624/AIAvatar">
+    <img src="https://raw.githubusercontent.com/shibing624/AIAvatar/main/docs/logo-avatar.png" height="150" alt="Logo">
+  </a>
+</div>
+
+-----------------
+
+# AIAvatar: Build Your Personal Digital Avatar
+[![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![License Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![python_version](https://img.shields.io/badge/Python-3.10%2B-green.svg)](requirements.txt)
+[![GitHub issues](https://img.shields.io/github/issues/shibing624/AIAvatar.svg)](https://github.com/shibing624/AIAvatar/issues)
+[![Wechat Group](https://img.shields.io/badge/wechat-group-green.svg?logo=wechat)](#Contact)
+
+
+**AIAvatar**: Real-time interactive streaming digital avatar with synchronized audio and video dialogue. Achieves commercial-grade quality.
+
+**AIAvatar** 实时交互流式数字人，实现音视频同步对话。基本可以达到商用效果。
 [wav2lip效果](https://www.bilibili.com/video/BV1scwBeyELA/)
 
 ## Features
-1. 支持数字人模型wav2lip
-2. 支持声音克隆
-3. 支持数字人说话被打断
-4. 支持webrtc输出
-5. 支持动作编排：不说话时播放自定义视频
-6. 支持多并发
+- 支持数字人唇形同步模型wav2lip
+- 支持声音克隆
+- 支持数字人说话被打断
+- 支持webrtc输出
+- 支持动作编排：不说话时播放自定义视频
+- 支持多并发，支持前后端分离，gpu部署模型服务，cpu启动前端服务
 
-## 1. Installation
 
-Tested on Ubuntu 24.04, Python3.10, Pytorch 2.5.0 and CUDA 12.4
+## Demo
 
-### 1.1 Install dependency
+Huggingface Demo: 
+
+## Install
+
+### Install dependency
 
 ```bash
 conda create -n avatar python=3.10
 conda activate avatar
-#如果cuda版本不为12.4(运行nvidia-smi确认版本)，根据<https://pytorch.org/get-started/previous-versions/>安装对应版本的pytorch 
 conda install pytorch==2.5.0 torchvision==0.20.0 torchaudio==2.5.0 pytorch-cuda=12.4 -c pytorch -c nvidia
 pip install -r requirements.txt
 ``` 
-安装常见问题[FAQ](https://livetalking-doc.readthedocs.io/zh-cn/latest/faq.html)  
-linux cuda环境搭建可以参考 [这篇文章](https://zhuanlan.zhihu.com/p/674972886)  
-视频连不上的[解决方法](https://mp.weixin.qq.com/s/MVUkxxhV2cgMMHalphr2cg)
 
 
-## 2. Quick Start
+## Quick Start
 
-### 2.1 自动下载模型和形象（推荐）
+### 自动下载模型和形象（推荐）
 本项目已集成自动下载功能，首次运行时会自动从 HuggingFace 下载必要的模型和形象文件：
 
 - **模型文件**：wav2lip.pth (215 MB) - Wav2Lip256 唇形同步生成模型
@@ -49,22 +61,19 @@ linux cuda环境搭建可以参考 [这篇文章](https://zhuanlan.zhihu.com/p/6
 
 **配置说明**：下载配置位于 `config.yml` 的 `DOWNLOAD` 部分，可根据需要修改下载源或文件路径。
 
-### 2.2 手动下载模型（备选方案）
+### 手动下载模型（备选方案）
 如果自动下载遇到网络问题，也可以手动下载：
 - HuggingFace <https://huggingface.co/shibing624/ai-avatar-wav2lip>
+- 将wav2lip.pth拷到本项目的models下
+- 将形象文件解压后整个文件夹拷到本项目的data目录下
 
-将wav2lip.pth拷到本项目的models下;  
-将形象文件解压后整个文件夹拷到本项目的data目录下
-
-
-
-- 模型下载
+#### 模型下载
 
 如果访问不了huggingface，在运行前
 ```
 export HF_ENDPOINT=https://hf-mirror.com
 ``` 
-### 2.3 运行
+### 运行
 
 #### 方式一：使用启动脚本（推荐）
 ```bash
@@ -75,7 +84,7 @@ export HF_ENDPOINT=https://hf-mirror.com
 ./run.sh glass_man
 
 # 使用长发女性形象，自定义端口
-./run.sh long_hair_girl 8080
+./run.sh long_hair_girl 8010
 ```
 
 #### 方式二：直接运行
@@ -86,10 +95,10 @@ python main.py
 # 使用指定形象
 python main.py --avatar_id wav2lip_avatar_female_model
 python main.py --avatar_id wav2lip_avatar_glass_man  
-python main.py --avatar_id wav2lip_avatar_long_hair_girl
+python main.py --avatar_id wav2lip_avatar_long_hair_girl --tts doubao --REF_FILE zh_female_roumeinvyou_emo_v2_mars_bigtts
 
 # 自定义端口
-python main.py --port 8080
+python main.py --port 8010
 ```
 
 **访问方式：**
@@ -100,9 +109,6 @@ python main.py --port 8080
 - 系统会自动检查并下载缺失的模型和形象文件
 - 总下载大小约850MB，请确保网络稳定
 - 下载完成后会自动启动服务
-
-用浏览器打开http://serverip:8010/index.html , 先点‘开始连接',播放数字人视频；然后在文本框输入任意文字，提交。数字人播报该段文字  
-
 
 
 ## 性能
@@ -116,4 +122,58 @@ python main.py --port 8080
 wav2lip256 | 3060    | 60
 wav2lip256 | 3080Ti  | 120
 
-wav2lip256显卡3060以上即可。 
+wav2lip256模型需要显卡3060以上即可。 
+
+
+## Contact
+
+- Issue(建议)
+  ：[![GitHub issues](https://img.shields.io/github/issues/shibing624/AIAvatar.svg)](https://github.com/shibing624/AIAvatar/issues)
+- 邮件我：xuming: xuming624@qq.com
+- 微信我： 加我*微信号：xuming624, 备注：姓名-公司-NLP* 进NLP交流群。
+
+<img src="https://github.com/shibing624/AIAvatar/blob/main/docs/wechat.jpeg" width="200" />
+
+## Citation
+
+如果你在研究中使用了 AIAvatar ，请按如下格式引用：
+
+APA:
+
+```
+Xu, M. AIAvatar: Build Your Personal Digital Avatar (Version 1.0.1) [Computer software]. https://github.com/shibing624/AIAvatar
+```
+
+BibTeX:
+
+```
+@misc{Xu_AIAvatar,
+  title={AIAvatar: Build Your Personal Digital Avatar},
+  author={Xu Ming},
+  year={2025},
+  howpublished={\url{https://github.com/shibing624/AIAvatar}},
+}
+```
+
+## License
+
+授权协议为 [The Apache License 2.0](/LICENSE)，可免费用做商业用途。请在产品说明中附加AIAvatar的链接和授权协议。
+
+## Contribute
+
+项目代码还很粗糙，如果大家对代码有所改进，欢迎提交回本项目，在提交之前，注意以下两点：
+
+- 在`tests`添加相应的单元测试
+- 使用`python -m pytest`来运行所有单元测试，确保所有单测都是通过的
+
+之后即可提交PR。
+
+## Acknowledgements 
+
+- [https://github.com/TMElyralab/MuseTalk](https://github.com/TMElyralab/MuseTalk)
+- [https://github.com/lipku/LiveTalking](https://github.com/lipku/LiveTalking)
+
+
+Thanks for their great work!
+
+

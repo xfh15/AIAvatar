@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Xu"
+  given-names: "Ming"
+title: "AIAvatar: Build Your Personal Digital Avatar"
+url: "https://github.com/shibing624/AIAvatar"
+data-released: 2025-11-17
+version: 0.0.4

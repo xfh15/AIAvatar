@@ -12,7 +12,7 @@ imageio-ffmpeg
 transformers
 flask
 flask_sockets
-opencv-python-headless
+opencv-python # or opencv-python-headless
 aiortc
 aiohttp
 aiohttp_cors
