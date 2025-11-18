@@ -34,10 +34,13 @@
 ![model](https://github.com/shibing624/AIAvatar/blob/main/docs/main.png)
 ## Cases
 
-<video width="80%" controls>
-  <source src="https://shibing624.github.io/AIAvatar/docs/long_hair_girl_demo.mp4" type="video/mp4">
-</video>
 
+<iframe src="//player.bilibili.com/player.html?bvid=BV1XyCrB1Eng&page=1" 
+        scrolling="no" border="0" frameborder="no" framespacing="0" 
+        allowfullscreen="true" width="80%" height="500px">
+</iframe>
+
+Bilibili: https://www.bilibili.com/video/BV1XyCrB1Eng/?vd_source=3a205bb530206c2aff567b054da55a43
 ## Install
 
 ### Install dependency
