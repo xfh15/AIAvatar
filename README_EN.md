@@ -36,18 +36,9 @@
 
 <div align="center">
 
-<iframe src="https://player.bilibili.com/player.html?bvid=BV1XyCrB1Eng&page=1&high_quality=1&danmaku=0" 
-        scrolling="no" 
-        border="0" 
-        frameborder="no" 
-        framespacing="0" 
-        allowfullscreen="true" 
-        width="100%" 
-        height="500px"
-        style="max-width: 800px;">
-</iframe>
+[![Demo Video](https://img.shields.io/badge/📺%20Watch%20Demo%20Video-Click%20to%20Bilibili-blue?style=for-the-badge)](https://www.bilibili.com/video/BV1XyCrB1Eng/?vd_source=3a205bb530206c2aff567b054da55a43)
 
-**Bilibili**: [https://www.bilibili.com/video/BV1XyCrB1Eng](https://www.bilibili.com/video/BV1XyCrB1Eng/?vd_source=3a205bb530206c2aff567b054da55a43)
+**Bilibili Video Link**: [https://www.bilibili.com/video/BV1XyCrB1Eng](https://www.bilibili.com/video/BV1XyCrB1Eng/?vd_source=3a205bb530206c2aff567b054da55a43)
 
 </div>
 ## Install
