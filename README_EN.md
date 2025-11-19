@@ -89,10 +89,10 @@ export HF_ENDPOINT=https://hf-mirror.com
 ./run.sh
 
 # Use male avatar with glasses
-./run.sh glass_man
+./run.sh wav2lip_avatar_glass_man
 
 # Use long-haired female avatar, custom port
-./run.sh long_hair_girl 8010
+./run.sh wav2lip_avatar_long_hair_girl 8010
 ```
 
 #### Method 2: Direct Run
