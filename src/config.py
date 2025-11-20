@@ -92,6 +92,9 @@ def get_doubao_token() -> str:
     """获取豆包 TTS Token"""
     return get_tts_config().get('DOUBAO_TOKEN', '')
 
+def get_doubao_voice() -> str:
+    """获取豆包 TTS Voice"""
+    return get_tts_config().get('DOUBAO_VOICE', 'zh_female_meilinvyou_saturn_bigtts')
 
 def get_download_config() -> dict:
     """

@@ -33,7 +33,7 @@ import soundfile as sf
 import asyncio
 from av import AudioFrame, VideoFrame
 
-from src.ttsreal import TencentTTS, DoubaoTTS, AzureTTS
+from src.ttsreal import TencentTTS, DoubaoTTS, DoubaoTTS3, AzureTTS
 from src.log import logger
 
 
@@ -75,6 +75,8 @@ class BaseReal:
             self.tts = TencentTTS(opt, self)
         elif opt.tts == "doubao":
             self.tts = DoubaoTTS(opt, self)
+        elif opt.tts == "doubao3":
+            self.tts = DoubaoTTS3(opt, self)
         elif opt.tts == "azuretts":
             self.tts = AzureTTS(opt, self)
 
