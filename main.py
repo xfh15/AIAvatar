@@ -330,11 +330,11 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=64, help="infer batch")
     parser.add_argument('--customvideo_config', type=str, default='', help="custom action json")
 
-    parser.add_argument('--tts', type=str, default='doubao',
-                        help="tts service type")  # tencent doubao azuretts
-    parser.add_argument('--REF_FILE', type=str, default="zh_female_sajiaonvyou_moon_bigtts",
+    parser.add_argument('--tts', type=str, default='doubao3',
+                        help="tts service type")  # tencent doubao azuretts doubao3
+    parser.add_argument('--REF_FILE', type=str, default="zh_female_santongyongns_saturn_bigtts",
                         help="参考音频文件名或语音模型ID，默认值为 edgetts的语音模型ID zh-CN-YunxiaNeural, 若--tts指定为azuretts, 可以使用Azure语音模型ID, 如zh-CN-XiaoxiaoMultilingualNeural,"
-                             "doubao的音色列表：https://www.volcengine.com/docs/6561/1257544 选择语音合成模型1.0音色列表")
+                             "doubao的音色列表：https://www.volcengine.com/docs/6561/1257544 选择语音合成模型1.0音色列表, doubao3选择2.0音色列表")
     parser.add_argument('--REF_TEXT', type=str, default=None)
     parser.add_argument('--TTS_SERVER', type=str, default='')  # http://localhost:9000
 

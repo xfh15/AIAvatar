@@ -402,7 +402,7 @@ class DoubaoTTS3(BaseTTS):
         
         # 尝试导入火山引擎双向协议库
         try:
-            from protocols.protocols import (
+            from src.protocols import (
                 receive_message,
                 start_connection,
                 start_session,
@@ -485,8 +485,7 @@ class DoubaoTTS3(BaseTTS):
             logger.info(f"Voice type: {self.voice_type}")
             logger.info(f"Resource ID: {resource_id}")
             logger.info(f"Connect ID: {connect_id}")
-            logger.info(f"Headers keys: {list(headers.keys())}")
-            logger.debug(f"App-Key (first 10 chars): {self.appid[:10] if self.appid else 'None'}")
+            logger.debug(f"AppID (first 10 chars): {self.appid[:10] if self.appid else 'None'}")
             logger.debug(f"Access-Key (first 10 chars): {self.token[:10] if self.token else 'None'}")
             
             first = True
@@ -498,17 +497,12 @@ class DoubaoTTS3(BaseTTS):
                     max_size=10 * 1024 * 1024,
                     additional_headers=headers
                 ) as websocket:
-                    logger.info("✅ WebSocket连接成功")
-                    
-                    # 启动连接 - 使用协议库函数
                     await self.start_connection(websocket)
                     
                     # 等待ConnectionStarted事件（手动处理）
                     while True:
                         msg = await self.receive_message(websocket)
-                        logger.info(f"🔍 等待ConnectionStarted: type={msg.type}, event={getattr(msg, 'event', 'N/A')}")
                         if msg.type == self.MsgType.FullServerResponse and msg.event == self.EventType.ConnectionStarted:
-                            logger.info("✅ 连接已建立")
                             break
                     
                     # 分割文本为句子
@@ -546,9 +540,7 @@ class DoubaoTTS3(BaseTTS):
                         # 等待SessionStarted事件（手动处理，避免wait_for_event抛出异常）
                         while True:
                             msg = await self.receive_message(websocket)
-                            logger.info(f"🔍 等待SessionStarted: type={msg.type}, event={getattr(msg, 'event', 'N/A')}")
                             if msg.type == self.MsgType.FullServerResponse and msg.event == self.EventType.SessionStarted:
-                                logger.info("✅ 会话已启动")
                                 break
                         
                         # 逐字符发送文本（异步后台任务）
@@ -570,29 +562,19 @@ class DoubaoTTS3(BaseTTS):
                                 else:
                                     # 普通字符延迟，比 bidirection.py 的 5ms 更长以降低语速
                                     await asyncio.sleep(0.02)  # 20ms延迟
-                            
-                            # 结束会话
                             await self.finish_session(websocket, session_id)
-                            logger.info("📤 字符发送完成")
-                        
                         # 开始后台发送字符
                         send_task = asyncio.create_task(send_chars())
                         
                         # 接收音频数据 - 使用协议库函数
-                        logger.info("📥 接收音频数据...")
                         while True:
                             try:
                                 msg = await self.receive_message(websocket)
                                 
-                                # 添加详细的消息类型日志
-                                logger.info(f"🔍 收到消息: type={msg.type}, event={getattr(msg, 'event', 'N/A')}, payload_size={len(msg.payload) if msg.payload else 0}")
-                                
                                 if msg.type == self.MsgType.FullServerResponse:
                                     if msg.event == self.EventType.SessionFinished:
-                                        logger.info("✅ 会话完成")
+                                        # logger.info("✅ 会话完成")
                                         break
-                                    else:
-                                        logger.info(f"📨 FullServerResponse事件: {msg.event}")
                                 elif msg.type == self.MsgType.AudioOnlyServer:
                                     if msg.payload and len(msg.payload) > 0:
                                         if first:
@@ -600,8 +582,6 @@ class DoubaoTTS3(BaseTTS):
                                             logger.info(f"DoubaoTTS3 Time to first chunk: {end - start}s")
                                             first = False
                                         chunk_count += 1
-                                        if chunk_count <= 3 or chunk_count % 10 == 0:
-                                            logger.info(f"📦 收到音频chunk #{chunk_count}: {len(msg.payload)} bytes")
                                         yield msg.payload
                                 elif msg.type == self.MsgType.Error:
                                     # 处理错误消息
@@ -647,15 +627,14 @@ class DoubaoTTS3(BaseTTS):
                         await send_task
                     
                     # 结束连接 - 使用协议库函数
-                    logger.info("🔄 结束连接...")
+                    # logger.info("🔄 结束连接...")
                     await self.finish_connection(websocket)
                     
                     # 等待ConnectionFinished事件（手动处理）
                     while True:
                         msg = await self.receive_message(websocket)
-                        logger.info(f"🔍 等待ConnectionFinished: type={msg.type}, event={getattr(msg, 'event', 'N/A')}")
                         if msg.type == self.MsgType.FullServerResponse and msg.event == self.EventType.ConnectionFinished:
-                            logger.info("✅ 连接已关闭")
+                            # logger.info("✅ 连接已关闭")
                             break
                     
                     logger.info(f"📊 DoubaoTTS3流处理完成: {chunk_count} chunks")
@@ -716,13 +695,6 @@ class DoubaoTTS3(BaseTTS):
                     stream = resampy.resample(x=stream_24k, sr_orig=24000, sr_new=16000)
                     samples_16k = len(stream)
                     
-                    # 添加音频振幅调试日志
-                    max_amplitude = np.max(np.abs(stream))
-                    if chunk_count <= 3 or chunk_count % 10 == 0:
-                        duration_24k = samples_24k / 24000.0
-                        duration_16k = samples_16k / 16000.0
-                        logger.info(f'🎵 TTS3 chunk #{chunk_count}: {len(chunk)} bytes, {samples_24k} samples@24kHz ({duration_24k:.3f}s) -> {samples_16k} samples@16kHz ({duration_16k:.3f}s), max_amplitude={max_amplitude:.4f}')
-                    
                     stream = np.concatenate((last_stream, stream))
                     streamlen = stream.shape[0]
                     idx = 0
@@ -738,8 +710,8 @@ class DoubaoTTS3(BaseTTS):
                         # 获取当前帧并检查振幅
                         current_frame = stream[idx:idx + self.chunk]
                         frame_amplitude = np.max(np.abs(current_frame))
-                        if frame_count < 3:
-                            logger.info(f'🔊 Putting audio frame: amplitude={frame_amplitude:.4f}')
+                        # if frame_count < 3:
+                        #     logger.info(f'🔊 Putting audio frame: amplitude={frame_amplitude:.4f}')
                         
                         self.parent.put_audio_frame(current_frame, eventpoint)
                         streamlen -= self.chunk
