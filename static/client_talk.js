@@ -116,9 +116,7 @@ class AvatarClient {
             // 创建 RTCPeerConnection
             this.pc = new RTCPeerConnection({
                 sdpSemantics: 'unified-plan',
-                iceServers: [
-                    { urls: 'stun:stun.l.google.com:19302' }
-                ]
+                iceServers: []
             });
 
             // 监听远程视频流
@@ -181,7 +179,7 @@ class AvatarClient {
             const offer = await this.pc.createOffer();
             await this.pc.setLocalDescription(offer);
 
-            this.updateLoadingProgress('正在收集数字人信息...');
+            this.updateLoadingProgress('正在收集信息...');
             
             // 等待 ICE gathering 完成
             await new Promise((resolve) => {

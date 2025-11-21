@@ -162,14 +162,7 @@ async def offer(request):
     nerfreal = LipReal(temp_opt, model, session_avatar)
     nerfreals[sessionid] = nerfreal
     
-    # 配置 ICE 服务器（STUN/TURN）以支持 NAT 穿透
-    # 这对于远程服务器部署至关重要
-    ice_servers = [
-        RTCIceServer(urls=["stun:stun.l.google.com:19302"]),
-        RTCIceServer(urls=["stun:stun1.l.google.com:19302"]),
-        RTCIceServer(urls=["stun:stun2.l.google.com:19302"]),
-    ]
-    
+    ice_servers = []
     pc = RTCPeerConnection(configuration=RTCConfiguration(
         iceServers=ice_servers,
     ))
