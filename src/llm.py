@@ -19,7 +19,7 @@ def llm_response(message, nerfreal: BaseReal):
     start = time.perf_counter()
     completion = client.chat.completions.create(
         model="qwen-plus",
-        messages=[{'role': 'system', 'content': 'You are a helpful assistant.简单回答用户问题，尽量简洁。'},
+        messages=[{'role': 'system', 'content': 'You are a helpful assistant.简单回答用户问题，尽量简洁。回答为text格式，不要markdown格式的。'},
                   {'role': 'user', 'content': message}],
         stream=True,
         stream_options={"include_usage": True}
