@@ -161,7 +161,7 @@ def inference(quit_event, batch_size, face_list_cycle, audio_feat_queue, audio_o
             counttime += (time.perf_counter() - t)
             count += batch_size
             if count >= 1000:
-                logger.info(f"------actual avg infer fps:{count / counttime:.4f}")
+                logger.info(f"actual avg infer fps:{count / counttime:.4f}")
                 count = 0
                 counttime = 0
             for i, res_frame in enumerate(pred):

@@ -148,10 +148,32 @@ class HumanPlayer:
         self.__video = PlayerStreamTrack(self, kind="video")
 
         self.__container = nerfreal
+        self._data_channel = None  # 数据通道
 
     def notify(self, eventpoint):
         if self.__container is not None:
             self.__container.notify(eventpoint)
+            
+            # 如果是TTS文本通知，发送到数据通道
+            if isinstance(eventpoint, dict) and 'text' in eventpoint and self._data_channel:
+                try:
+                    import json
+                    # 发送LLM回答到前端（仅发送start状态的完整文本）
+                    if eventpoint.get('status') == 'start':
+                        message = {
+                            'type': 'llm',
+                            'text': eventpoint.get('text', '')
+                        }
+                        if self._data_channel.readyState == 'open':
+                            self._data_channel.send(json.dumps(message))
+                            logger.info(f"Sent LLM message: {message['text']}")
+                except Exception as e:
+                    logger.error(f"Failed to send data channel message: {e}")
+
+    def set_data_channel(self, data_channel):
+        """设置数据通道"""
+        self._data_channel = data_channel
+        logger.info("Data channel set for HumanPlayer")
 
     @property
     def audio(self) -> MediaStreamTrack:

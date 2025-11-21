@@ -1,9 +1,9 @@
 LLM:
-  LLM_API_KEY: "xxx"
+  LLM_API_KEY: "xx"
   LLM_BASE_URL: "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
 TTS:
-  DOUBAO_APPID: "xxx"
+  DOUBAO_APPID: "xx"
   DOUBAO_TOKEN: "xxx"
 
 DOWNLOAD:
@@ -33,3 +33,36 @@ DOWNLOAD:
       path: "./data/wav2lip_avatar_long_hair_girl.zip"
       size: "153 MB"
       description: "长发女性数字人形象"
+
+# 数字人配置
+AVATARS:
+  default_avatar: "ai_model"
+  
+  avatars:
+    - id: "ai_model"
+      name: "AI 模特"
+      description: "专业的AI模特，展示时尚、优雅与自信"
+      avatar_dir: "wav2lip_avatar_female_model"
+      image: "/data/wav2lip_avatar_female_model/full_imgs/00000000.png"
+      tts_config:
+        type: "doubao3"
+        voice: "zh_female_vv_uranus_bigtts"
+    
+    - id: "ai_girlfriend"
+      name: "AI 女友"
+      description: "温柔体贴的AI女友，倾听、关心、陪伴你的每一天"
+      avatar_dir: "wav2lip_avatar_long_hair_girl"
+      image: "/data/wav2lip_avatar_long_hair_girl/full_imgs/00000000.png"
+      tts_config:
+        type: "doubao3"
+        voice: "saturn_zh_female_keainvsheng_tob"
+    
+    - id: "ai_assistant"
+      name: "AI 助手"
+      description: "高效专业的AI助手，帮助你解决工作和学习中的各种问题"
+      avatar_dir: "wav2lip_avatar_glass_man"
+      image: "/data/wav2lip_avatar_glass_man/full_imgs/00000000.png"
+      tts_config:
+        type: "doubao3"
+        voice: "zh_male_m191_uranus_bigtts"
+

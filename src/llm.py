@@ -5,25 +5,23 @@ from src.log import logger
 from src.config import get_llm_api_key, get_llm_base_url
 
 
+api_key = get_llm_api_key()
+base_url = get_llm_base_url()
+show_api_key = api_key[:10] + "..."
+client = OpenAI(
+    api_key=api_key,
+    base_url=base_url,
+)
+logger.debug(f"llm api_key: {show_api_key}, llm base_url: {base_url}")
+
+
 def llm_response(message, nerfreal: BaseReal):
     start = time.perf_counter()
-    api_key = get_llm_api_key()
-    base_url = get_llm_base_url()
-    show_api_key = api_key[:10] + "..."
-    logger.info(f"llm api_key: {show_api_key}")
-    logger.info(f"llm base_url: {base_url}")
-    client = OpenAI(
-        api_key=api_key,
-        base_url=base_url,
-    )
-    end = time.perf_counter()
-    logger.debug(f"llm Time init: {end - start}s")
     completion = client.chat.completions.create(
         model="qwen-plus",
         messages=[{'role': 'system', 'content': 'You are a helpful assistant.简单回答用户问题，尽量简洁。'},
                   {'role': 'user', 'content': message}],
         stream=True,
-        # 通过以下设置，在流式输出的最后一行展示token使用信息
         stream_options={"include_usage": True}
     )
     result = ""

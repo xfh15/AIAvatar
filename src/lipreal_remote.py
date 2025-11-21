@@ -224,7 +224,7 @@ def inference(quit_event, batch_size, face_list_cycle, audio_feat_queue, audio_o
                 res_frame_queue.put((None, __mirror_index(length, index), audio_frames[i*2:i*2+2]))
                 index = index + 1
         else:
-            logger.debug(f"🎤 Speech detected, calling remote inference (batch_size={batch_size})")
+            # logger.debug(f"🎤 Speech detected, calling remote inference (batch_size={batch_size})")
             t = time.perf_counter()
             
             # 【优化】预计算face索引，避免重复计算
@@ -258,7 +258,7 @@ def inference(quit_event, batch_size, face_list_cycle, audio_feat_queue, audio_o
                 counttime = 0
                 
             # 【优化】直接遍历，避免enumerate开销
-            logger.debug(f"📹 Putting {len(pred)} frames to queue, pred shape={pred.shape}, dtype={pred.dtype}, value_range=[{pred.min():.1f}, {pred.max():.1f}]")
+            # logger.debug(f"📹 Putting {len(pred)} frames to queue, pred shape={pred.shape}, dtype={pred.dtype}, value_range=[{pred.min():.1f}, {pred.max():.1f}]")
             for i in range(len(pred)):
                 res_frame_queue.put((pred[i], __mirror_index(length, index), audio_frames[i*2:i*2+2]))
                 index = index + 1
@@ -328,7 +328,7 @@ class LipReal(BaseReal):
             if video_track and video_track._queue.qsize() >= 5:
                 queue_size = video_track._queue.qsize()
                 sleep_time = 0.04 * queue_size * 0.8
-                logger.debug(f'pausing production for queue control, queue size: {queue_size}')
+                # logger.debug(f'pausing production for queue control, queue size: {queue_size}')
                 time.sleep(sleep_time)
 
         logger.info('lipreal thread stop')

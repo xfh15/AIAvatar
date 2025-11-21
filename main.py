@@ -24,7 +24,7 @@ from src.basereal import BaseReal
 from src.llm import llm_response
 from src.log import logger
 from src.get_file import http_get
-from src.config import get_model_download_config, get_avatar_download_config
+from src.config import get_model_download_config, get_avatar_download_config, get_avatars_config, get_avatar_config
 
 app = Flask(__name__)
 nerfreals: Dict[int, BaseReal] = {}  # sessionid:BaseReal
@@ -103,7 +103,7 @@ def build_nerfreal(sessionid: int) -> BaseReal:
         logger.info(f"Using remote GPU service: {opt.gpu_server_url}")
     else:
         from src.lipreal import LipReal
-        logger.info("Using local GPU")
+        logger.info("Using local device")
     nerfreal = LipReal(opt, model, avatar)
     return nerfreal
 
@@ -111,11 +111,50 @@ def build_nerfreal(sessionid: int) -> BaseReal:
 async def offer(request):
     params = await request.json()
     offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
+    
+    # 获取avatar_id参数，如果没有则使用默认
+    avatar_id = params.get("avatar_id", opt.avatar_id)
+    logger.info(f'Requested avatar_id: {avatar_id}')
+    
+    # 根据avatar_id加载对应的配置
+    avatar_config = get_avatar_config(avatar_id)
+    if avatar_config:
+        logger.info(f'Using avatar: {avatar_config["name"]} ({avatar_config["description"]})')
+        # 临时修改opt以使用指定的avatar配置
+        temp_opt = argparse.Namespace(**vars(opt))
+        temp_opt.avatar_id = avatar_config["avatar_dir"]
+        temp_opt.REF_FILE = avatar_config["tts_config"]["voice"]
+        temp_opt.tts = avatar_config["tts_config"]["type"]
+    else:
+        temp_opt = opt
+        logger.warning(f'Avatar config not found for {avatar_id}, using default')
 
     sessionid = uuid.uuid4().int % 1000000
     nerfreals[sessionid] = None
-    logger.info('sessionid=%d, session num=%d', sessionid, len(nerfreals))
-    nerfreal = await asyncio.get_event_loop().run_in_executor(None, build_nerfreal, sessionid)
+    logger.debug(f"sessionid={sessionid}, session num={len(nerfreals)}")
+    
+    # 使用temp_opt构建nerfreal
+    temp_opt.sessionid = sessionid
+    if temp_opt.gpu_server_url:
+        from src.lipreal_remote import LipReal
+        logger.info(f"Using remote GPU service: {temp_opt.gpu_server_url}")
+    else:
+        from src.lipreal import LipReal
+        logger.info("Using local device")
+    
+    # 为这个会话加载对应的avatar
+    if temp_opt.avatar_id != opt.avatar_id:
+        # 需要加载不同的avatar
+        if temp_opt.gpu_server_url:
+            from src.lipreal_remote import load_avatar as load_avatar_remote
+            session_avatar = load_avatar_remote(temp_opt.avatar_id)
+        else:
+            from src.lipreal import load_avatar as load_avatar_local
+            session_avatar = load_avatar_local(temp_opt.avatar_id)
+    else:
+        session_avatar = avatar
+    
+    nerfreal = LipReal(temp_opt, model, session_avatar)
     nerfreals[sessionid] = nerfreal
     pc = RTCPeerConnection(configuration=RTCConfiguration(
         iceServers=[],
@@ -133,6 +172,16 @@ async def offer(request):
             pcs.discard(pc)
             del nerfreals[sessionid]
             # gc.collect()
+    
+    @pc.on("datachannel")
+    def on_datachannel(channel):
+        logger.info(f"Data channel established: {channel.label}")
+        # 将数据通道传递给player，以便发送LLM回答
+        player.set_data_channel(channel)
+        
+        @channel.on("message")
+        def on_message(message):
+            logger.debug(f"Received message from client: {message}")
 
     player = HumanPlayer(nerfreals[sessionid])
     audio_sender = pc.addTrack(player.audio)
@@ -168,7 +217,6 @@ async def human(request):
             nerfreals[sessionid].put_msg_txt(params['text'])
         elif params['type'] == 'chat':
             asyncio.get_event_loop().run_in_executor(None, llm_response, params['text'], nerfreals[sessionid])
-            # nerfreals[sessionid].put_msg_txt(res)
 
         return web.Response(
             content_type="application/json",
@@ -295,6 +343,26 @@ async def is_speaking(request):
     )
 
 
+async def get_avatars(request):
+    """获取所有可用的数字人列表"""
+    try:
+        config = get_avatars_config()
+        return web.Response(
+            content_type="application/json",
+            text=json.dumps(
+                {"code": 0, "data": config["avatars"]}
+            ),
+        )
+    except Exception as e:
+        logger.exception('get_avatars exception:')
+        return web.Response(
+            content_type="application/json",
+            text=json.dumps(
+                {"code": -1, "msg": str(e)}
+            ),
+        )
+
+
 async def on_shutdown(app):
     # close peer connections
     coros = [pc.close() for pc in pcs]
@@ -366,7 +434,7 @@ if __name__ == '__main__':
         # 本地GPU模式
         from src.lipreal import load_model, load_avatar, warm_up
 
-        logger.info(f"Using local GPU, model_path: {default_model_path}, avatar_id: {opt.avatar_id}")
+        logger.info(f"Using local device, model_path: {default_model_path}, avatar_id: {opt.avatar_id}")
         model = load_model(default_model_path)
         avatar = load_avatar(opt.avatar_id)
         warm_up(opt.batch_size, model, 256)
@@ -381,6 +449,8 @@ if __name__ == '__main__':
     appasync.router.add_post("/record", record)
     appasync.router.add_post("/interrupt_talk", interrupt_talk)
     appasync.router.add_post("/is_speaking", is_speaking)
+    appasync.router.add_get("/api/avatars", get_avatars)
+    appasync.router.add_static('/data', path='data')  # 添加data目录的静态文件访问
     appasync.router.add_static('/', path='static')
 
     # Configure default CORS settings.

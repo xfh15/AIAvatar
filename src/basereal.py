@@ -153,7 +153,8 @@ class BaseReal:
             self.custom_index[key] = 0
 
     def notify(self, eventpoint):
-        logger.debug(f"notify:{eventpoint}")
+        # logger.debug(f"{eventpoint}") 
+        pass
 
     def start_recording(self):
         """开始录制视频"""

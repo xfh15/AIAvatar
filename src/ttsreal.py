@@ -425,7 +425,6 @@ class DoubaoTTS3(BaseTTS):
             import logging
             protocol_logger = logging.getLogger('volcengine_bidirection_demo.protocols.protocols')
             protocol_logger.setLevel(logging.INFO)
-            logger.info("✅ 协议库已加载并配置")
         except ImportError as e:
             logger.error(f"❌ 无法导入火山引擎双向协议库: {e}")
             logger.error("请确保已安装 volcengine_bidirection_demo 协议库")
@@ -439,9 +438,9 @@ class DoubaoTTS3(BaseTTS):
         if not self.appid or not self.token:
             raise ValueError("DoubaoTTS3 需要配置 DOUBAO_APPID 和 DOUBAO_TOKEN")
         
-        logger.info(f"DoubaoTTS3 appid: {self.appid}")
-        logger.info(f"DoubaoTTS3 token: {self.token[:10]}...{self.token[-10:]}")
-        logger.info(f"DoubaoTTS3 token length: {len(self.token)}")
+        logger.debug(f"DoubaoTTS3 appid: {self.appid}")
+        logger.debug(f"DoubaoTTS3 token: {self.token[:10]}...{self.token[-10:]}")
+        logger.debug(f"DoubaoTTS3 token length: {len(self.token)}")
         
         # 使用双向TTS协议端点
         self.api_url = "wss://openspeech.bytedance.com/api/v3/tts/bidirection"
@@ -450,10 +449,10 @@ class DoubaoTTS3(BaseTTS):
         config_voice = get_doubao_voice()
         if hasattr(opt, 'REF_FILE') and opt.REF_FILE:
             self.voice_type = opt.REF_FILE
-            logger.info(f"DoubaoTTS3 voice_type: {self.voice_type} (from command line)")
+            logger.debug(f"DoubaoTTS3 voice_type: {self.voice_type} (from command line)")
         else:
             self.voice_type = config_voice
-            logger.info(f"DoubaoTTS3 voice_type: {self.voice_type} (from config.yml)")
+            logger.debug(f"DoubaoTTS3 voice_type: {self.voice_type} (from config.yml)")
 
     def get_resource_id(self, voice: str) -> str:
         """根据voice类型获取resource_id"""
@@ -481,12 +480,12 @@ class DoubaoTTS3(BaseTTS):
                 "X-Api-Connect-Id": connect_id,
             }
             
-            logger.info(f"DoubaoTTS3 connecting to: {self.api_url}")
-            logger.info(f"Voice type: {self.voice_type}")
-            logger.info(f"Resource ID: {resource_id}")
-            logger.info(f"Connect ID: {connect_id}")
-            logger.debug(f"AppID (first 10 chars): {self.appid[:10] if self.appid else 'None'}")
-            logger.debug(f"Access-Key (first 10 chars): {self.token[:10] if self.token else 'None'}")
+            # logger.info(f"DoubaoTTS3 connecting to: {self.api_url}")
+            # logger.info(f"Voice type: {self.voice_type}")
+            # logger.info(f"Resource ID: {resource_id}")
+            # logger.info(f"Connect ID: {connect_id}")
+            # logger.debug(f"AppID (first 10 chars): {self.appid[:10] if self.appid else 'None'}")
+            # logger.debug(f"Access-Key (first 10 chars): {self.token[:10] if self.token else 'None'}")
             
             first = True
             chunk_count = 0

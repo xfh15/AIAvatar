@@ -1,4 +1,5 @@
 var pc = null;
+var dc = null; // 数据通道
 
 function negotiate() {
     pc.addTransceiver('video', { direction: 'recvonly' });
@@ -50,6 +51,31 @@ function start() {
 
     pc = new RTCPeerConnection(config);
 
+    // 创建数据通道
+    dc = pc.createDataChannel('chat');
+    
+    // 数据通道事件处理
+    dc.onopen = () => {
+        console.log('数据通道已打开');
+    };
+    
+    dc.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            handleDataChannelMessage(data);
+        } catch (error) {
+            console.error('处理数据通道消息失败:', error);
+        }
+    };
+    
+    dc.onerror = (error) => {
+        console.error('数据通道错误:', error);
+    };
+    
+    dc.onclose = () => {
+        console.log('数据通道已关闭');
+    };
+
     // connect audio / video
     pc.addEventListener('track', (evt) => {
         if (evt.track.kind == 'video') {
@@ -64,8 +90,49 @@ function start() {
     document.getElementById('stop').style.display = 'inline-block';
 }
 
+// 处理数据通道消息
+function handleDataChannelMessage(data) {
+    console.log('收到数据通道消息:', data);
+    
+    switch (data.type) {
+        case 'asr':
+            // 语音识别结果
+            console.log('ASR结果:', data.text);
+            if (typeof addChatMessage === 'function') {
+                addChatMessage(data.text, 'user');
+            }
+            break;
+            
+        case 'llm':
+            // LLM回答 - 添加到聊天窗口
+            console.log('LLM回答:', data.text);
+            if (typeof addChatMessage === 'function') {
+                addChatMessage(data.text, 'assistant');
+            }
+            break;
+            
+        case 'tts_start':
+            console.log('数字人开始说话');
+            break;
+            
+        case 'tts_end':
+            console.log('数字人结束说话');
+            break;
+            
+        case 'error':
+            console.error('错误:', data.message);
+            break;
+    }
+}
+
 function stop() {
     document.getElementById('stop').style.display = 'none';
+
+    // 关闭数据通道
+    if (dc) {
+        dc.close();
+        dc = null;
+    }
 
     // close peer connection
     setTimeout(() => {

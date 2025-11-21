@@ -155,3 +155,35 @@ def get_avatar_download_config() -> dict:
     
     return result
 
+
+def get_avatars_config() -> dict:
+    """
+    获取数字人配置
+    
+    Returns:
+        数字人配置字典，包含 avatars 列表和 default_avatar
+    """
+    config = get_config()
+    avatars_config = config.get('AVATARS', {})
+    return {
+        'avatars': avatars_config.get('avatars', []),
+        'default_avatar': avatars_config.get('default_avatar', 'ai_model')
+    }
+
+
+def get_avatar_config(avatar_id: str) -> dict:
+    """
+    根据avatar_id获取单个数字人配置
+    
+    Args:
+        avatar_id: 数字人ID
+        
+    Returns:
+        数字人配置字典，如果未找到返回None
+    """
+    avatars_config = get_avatars_config()
+    for avatar in avatars_config.get('avatars', []):
+        if avatar.get('id') == avatar_id:
+            return avatar
+    return None
+
