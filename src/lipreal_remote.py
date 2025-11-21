@@ -29,22 +29,33 @@ device = "cpu"  # 客户端使用CPU
 pwd_path = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.dirname(pwd_path)
 
+# 全局avatar缓存
+_avatar_cache = {}
+
+
 def load_avatar(avatar_id):
-    """加载avatar数据"""
+    """加载avatar数据，带缓存机制"""
+    global _avatar_cache
+    
+    # 检查缓存
+    if avatar_id in _avatar_cache:
+        logger.info(f'✓ Avatar "{avatar_id}" loaded from cache')
+        return _avatar_cache[avatar_id]
+    
+    logger.info(f'Loading avatar "{avatar_id}" from disk...')
     avatar_path = os.path.join(root_dir, 'data', avatar_id)
     full_imgs_path = f"{avatar_path}/full_imgs" 
     face_imgs_path = f"{avatar_path}/face_imgs" 
     coords_path = f"{avatar_path}/coords.pkl"
     
-    logger.info(f'avatar_id: {avatar_id}')
-    logger.info(f'Loading avatar from: {avatar_path}')
+    logger.info(f'Avatar path: {avatar_path}')
     logger.info(f'Full images path: {full_imgs_path}')
     logger.info(f'Face images path: {face_imgs_path}')
 
     if os.path.exists(coords_path):
         with open(coords_path, 'rb') as f:
             coord_list_cycle = pickle.load(f)
-        logger.info(f'loaded coords from {coords_path}, count: {len(coord_list_cycle)}')
+        logger.info(f'Loaded coords from {coords_path}, count: {len(coord_list_cycle)}')
     else:
         coord_list_cycle = None
         logger.warning(f'coords.pkl not found at {coords_path}')
@@ -68,7 +79,43 @@ def load_avatar(avatar_id):
     if coord_list_cycle is None or len(coord_list_cycle) == 0:
         raise ValueError(f"No coordinates loaded from {coords_path}. Please check if the avatar was generated correctly.")
 
+    # 缓存结果
+    _avatar_cache[avatar_id] = (frame_list_cycle, face_list_cycle, coord_list_cycle)
+    logger.info(f'✓ Avatar "{avatar_id}" loaded and cached (full: {len(frame_list_cycle)}, face: {len(face_list_cycle)})')
+
     return frame_list_cycle, face_list_cycle, coord_list_cycle
+
+
+def preload_avatars(avatar_ids):
+    """预加载多个avatar到缓存"""
+    logger.info(f'Preloading {len(avatar_ids)} avatars...')
+    for avatar_id in avatar_ids:
+        if avatar_id not in _avatar_cache:
+            try:
+                load_avatar(avatar_id)
+            except Exception as e:
+                logger.error(f'Failed to preload avatar "{avatar_id}": {e}')
+    logger.info(f'Preloading completed. Cached avatars: {list(_avatar_cache.keys())}')
+
+
+def clear_avatar_cache(avatar_id=None):
+    """清除avatar缓存
+    
+    Args:
+        avatar_id: 指定要清除的avatar_id，如果为None则清除所有
+    """
+    global _avatar_cache
+    if avatar_id is None:
+        _avatar_cache.clear()
+        logger.info('All avatar cache cleared')
+    elif avatar_id in _avatar_cache:
+        del _avatar_cache[avatar_id]
+        logger.info(f'Avatar "{avatar_id}" cache cleared')
+
+
+def get_cached_avatars():
+    """获取已缓存的avatar列表"""
+    return list(_avatar_cache.keys())
 
 
 def read_imgs(img_list):

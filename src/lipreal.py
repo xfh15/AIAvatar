@@ -42,6 +42,9 @@ root_dir = os.path.dirname(pwd_path)
 device = "cuda" if torch.cuda.is_available() else (
     "mps" if (hasattr(torch.backends, "mps") and torch.backends.mps.is_available()) else "cpu")
 
+# 全局avatar缓存
+_avatar_cache = {}
+
 
 def _load(checkpoint_path):
     if device == 'cuda':
@@ -67,6 +70,15 @@ def load_model(path):
 
 
 def load_avatar(avatar_id):
+    """加载avatar数据，带缓存机制"""
+    global _avatar_cache
+    
+    # 检查缓存
+    if avatar_id in _avatar_cache:
+        logger.info(f'✓ Avatar "{avatar_id}" loaded from cache')
+        return _avatar_cache[avatar_id]
+    
+    logger.info(f'Loading avatar "{avatar_id}" from disk...')
     avatar_path = os.path.join(root_dir, 'data', avatar_id)
     full_imgs_path = f"{avatar_path}/full_imgs"
     face_imgs_path = f"{avatar_path}/face_imgs"
@@ -81,7 +93,43 @@ def load_avatar(avatar_id):
     input_face_list = sorted(input_face_list, key=lambda x: int(os.path.splitext(os.path.basename(x))[0]))
     face_list_cycle = read_imgs(input_face_list)
 
+    # 缓存结果
+    _avatar_cache[avatar_id] = (frame_list_cycle, face_list_cycle, coord_list_cycle)
+    logger.info(f'✓ Avatar "{avatar_id}" loaded and cached (full: {len(frame_list_cycle)}, face: {len(face_list_cycle)})')
+    
     return frame_list_cycle, face_list_cycle, coord_list_cycle
+
+
+def preload_avatars(avatar_ids):
+    """预加载多个avatar到缓存"""
+    logger.info(f'Preloading {len(avatar_ids)} avatars...')
+    for avatar_id in avatar_ids:
+        if avatar_id not in _avatar_cache:
+            try:
+                load_avatar(avatar_id)
+            except Exception as e:
+                logger.error(f'Failed to preload avatar "{avatar_id}": {e}')
+    logger.info(f'Preloading completed. Cached avatars: {list(_avatar_cache.keys())}')
+
+
+def clear_avatar_cache(avatar_id=None):
+    """清除avatar缓存
+    
+    Args:
+        avatar_id: 指定要清除的avatar_id，如果为None则清除所有
+    """
+    global _avatar_cache
+    if avatar_id is None:
+        _avatar_cache.clear()
+        logger.info('All avatar cache cleared')
+    elif avatar_id in _avatar_cache:
+        del _avatar_cache[avatar_id]
+        logger.info(f'Avatar "{avatar_id}" cache cleared')
+
+
+def get_cached_avatars():
+    """获取已缓存的avatar列表"""
+    return list(_avatar_cache.keys())
 
 
 @torch.no_grad()

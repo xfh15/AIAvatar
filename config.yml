@@ -1,9 +1,9 @@
 LLM:
-  LLM_API_KEY: "xx"
+  LLM_API_KEY: "xxx"
   LLM_BASE_URL: "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
 TTS:
-  DOUBAO_APPID: "xx"
+  DOUBAO_APPID: "xxx"
   DOUBAO_TOKEN: "xxx"
 
 DOWNLOAD:
@@ -46,6 +46,7 @@ AVATARS:
       image: "/data/wav2lip_avatar_female_model/full_imgs/00000000.png"
       tts_config:
         type: "doubao3"
+        # Vivi zh_female_vv_uranus_bigtts
         voice: "zh_female_vv_uranus_bigtts"
     
     - id: "ai_girlfriend"
@@ -55,7 +56,8 @@ AVATARS:
       image: "/data/wav2lip_avatar_long_hair_girl/full_imgs/00000000.png"
       tts_config:
         type: "doubao3"
-        voice: "saturn_zh_female_keainvsheng_tob"
+        # 流畅女声 zh_female_santongyongns_saturn_bigtts ； 魅力女友 zh_female_meilinvyou_saturn_bigtts
+        voice: "zh_female_santongyongns_saturn_bigtts" 
     
     - id: "ai_assistant"
       name: "AI 助手"
@@ -64,5 +66,5 @@ AVATARS:
       image: "/data/wav2lip_avatar_glass_man/full_imgs/00000000.png"
       tts_config:
         type: "doubao3"
-        voice: "zh_male_m191_uranus_bigtts"
+        voice: "zh_male_m191_uranus_bigtts" # 云舟
 

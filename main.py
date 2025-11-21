@@ -425,19 +425,25 @@ if __name__ == '__main__':
     
     if opt.gpu_server_url:
         # 远程GPU模式：只加载avatar，不加载模型
-        from src.lipreal_remote import load_avatar
+        from src.lipreal_remote import load_avatar, preload_avatars
 
         logger.info(f"Using remote GPU service: {opt.gpu_server_url}")
         model = None  # 不需要本地模型
         avatar = load_avatar(opt.avatar_id)
     else:
         # 本地GPU模式
-        from src.lipreal import load_model, load_avatar, warm_up
+        from src.lipreal import load_model, load_avatar, warm_up, preload_avatars
 
         logger.info(f"Using local device, model_path: {default_model_path}, avatar_id: {opt.avatar_id}")
         model = load_model(default_model_path)
         avatar = load_avatar(opt.avatar_id)
         warm_up(opt.batch_size, model, 256)
+    
+    # 预加载所有配置的avatars
+    logger.info("预加载所有数字人形象到内存...")
+    avatars_config = get_avatars_config()
+    avatar_ids_to_preload = [a['avatar_dir'] for a in avatars_config['avatars']]
+    preload_avatars(avatar_ids_to_preload)
 
     # app async
     appasync = web.Application(client_max_size=1024 ** 2 * 100)
