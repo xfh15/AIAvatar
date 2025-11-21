@@ -63,14 +63,36 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(20px);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             z-index: 10;
             transition: opacity 0.5s;
+            overflow: hidden;
+        }
+
+        /* 背景图层 */
+        .loading-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            filter: blur(20px) brightness(0.6);
+            transform: scale(1.1);  /* 放大以消除模糊边缘 */
+        }
+
+        /* 前景内容 */
+        .loading-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .loading-overlay.hidden {
@@ -79,15 +101,23 @@
         }
 
         .loading-icon {
-            width: 80px;
-            height: 80px;
-            background: white;
+            width: 120px;
+            height: 120px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 1.5rem;
             animation: pulse 2s ease-in-out infinite;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .loading-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .loading-icon i {
@@ -97,13 +127,21 @@
 
         @keyframes pulse {
             0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
+            50% { transform: scale(1.05); }
         }
 
         .loading-text {
             color: white;
             font-size: 1.2rem;
             font-weight: 500;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+            margin-bottom: 0.5rem;
+        }
+
+        .loading-progress {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
         }
 
         /* 顶部导航栏 */
@@ -563,10 +601,14 @@
         
         <!-- 加载遮罩 -->
         <div class="loading-overlay" id="loadingOverlay">
-            <div class="loading-icon">
-                <i class="bi bi-telephone-fill"></i>
+            <div class="loading-background" id="loadingBackground"></div>
+            <div class="loading-content">
+                <div class="loading-icon" id="loadingIcon">
+                    <i class="bi bi-telephone-fill"></i>
+                </div>
+                <div class="loading-text" id="loadingText">Connecting...</div>
+                <div class="loading-progress" id="loadingProgress">正在准备数字人...</div>
             </div>
-            <div class="loading-text">Calling...</div>
         </div>
     </div>
 
@@ -686,12 +728,10 @@
         });
 
         // 字幕按钮控制
-        let subtitleEnabled = true;
         document.getElementById('subtitleBtn').addEventListener('click', function() {
-            subtitleEnabled = !subtitleEnabled;
-            this.classList.toggle('active');
-            if (!subtitleEnabled) {
-                document.getElementById('subtitleOverlay').classList.remove('show');
+            if (window.avatarClient) {
+                window.avatarClient.toggleSubtitle();
+                this.classList.toggle('active');
             }
         });
 

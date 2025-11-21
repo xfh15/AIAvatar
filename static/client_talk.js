@@ -16,6 +16,7 @@ class AvatarClient {
         this.isRecording = false;
         this.isSpeaking = false;
         this.sessionid = 0;
+        this.subtitleEnabled = true;  // 字幕开关状态
         
         // DOM 元素
         this.remoteVideo = document.getElementById('remoteVideo');
@@ -25,6 +26,7 @@ class AvatarClient {
         // 获取URL参数
         this.avatarId = this.getUrlParam('avatar') || 'ai_model';
         this.avatarName = 'AI Avatar';  // 默认名称，稍后从配置获取
+        this.avatarImage = '';  // avatar图片路径
         
         // 初始化
         this.init();
@@ -71,7 +73,11 @@ class AvatarClient {
                 const avatarConfig = result.data.find(a => a.id === this.avatarId);
                 if (avatarConfig) {
                     this.avatarName = avatarConfig.name;
-                    console.log(`Avatar配置加载成功: ${this.avatarName}`);
+                    this.avatarImage = avatarConfig.image;
+                    console.log(`Avatar配置加载成功: ${this.avatarName}, 图片: ${this.avatarImage}`);
+                    
+                    // 设置加载背景图和图标
+                    this.setLoadingBackground();
                 } else {
                     console.warn(`未找到avatar配置: ${this.avatarId}`);
                 }
@@ -81,10 +87,32 @@ class AvatarClient {
         }
     }
 
+    setLoadingBackground() {
+        if (this.avatarImage) {
+            // 设置加载遮罩的背景图（使用独立的背景层）
+            const loadingBg = document.getElementById('loadingBackground');
+            if (loadingBg) {
+                loadingBg.style.backgroundImage = `url(${this.avatarImage})`;
+            }
+            
+            // 设置加载图标为avatar头像
+            const loadingIcon = document.getElementById('loadingIcon');
+            if (loadingIcon) {
+                loadingIcon.innerHTML = `<img src="${this.avatarImage}" alt="${this.avatarName}">`;
+            }
+        }
+    }
+
+    updateLoadingProgress(text) {
+        const progressEl = document.getElementById('loadingProgress');
+        if (progressEl) {
+            progressEl.textContent = text;
+        }
+    }
+
     async connect() {
         try {
-            this.updateLoadingState('Connecting...');
-            
+            // 立即开始negotiate，减少延迟
             // 创建 RTCPeerConnection
             this.pc = new RTCPeerConnection({
                 sdpSemantics: 'unified-plan',
@@ -141,50 +169,78 @@ class AvatarClient {
     }
 
     async negotiate() {
-        // 添加 transceiver - 参考 client.js
-        this.pc.addTransceiver('video', { direction: 'recvonly' });
-        this.pc.addTransceiver('audio', { direction: 'recvonly' });
+        try {
+            // 添加进度提示
+            this.updateLoadingProgress('正在建立连接...');
+            
+            // 添加 transceiver - 参考 client.js
+            this.pc.addTransceiver('video', { direction: 'recvonly' });
+            this.pc.addTransceiver('audio', { direction: 'recvonly' });
 
-        // 创建 offer
-        const offer = await this.pc.createOffer();
-        await this.pc.setLocalDescription(offer);
+            // 创建 offer
+            const offer = await this.pc.createOffer();
+            await this.pc.setLocalDescription(offer);
 
-        // 等待 ICE gathering 完成
-        await new Promise((resolve) => {
-            if (this.pc.iceGatheringState === 'complete') {
-                resolve();
-            } else {
-                const checkState = () => {
-                    if (this.pc.iceGatheringState === 'complete') {
-                        this.pc.removeEventListener('icegatheringstatechange', checkState);
-                        resolve();
-                    }
-                };
-                this.pc.addEventListener('icegatheringstatechange', checkState);
+            this.updateLoadingProgress('正在收集网络信息...');
+            
+            // 等待 ICE gathering 完成
+            await new Promise((resolve) => {
+                if (this.pc.iceGatheringState === 'complete') {
+                    resolve();
+                } else {
+                    const checkState = () => {
+                        if (this.pc.iceGatheringState === 'complete') {
+                            this.pc.removeEventListener('icegatheringstatechange', checkState);
+                            resolve();
+                        }
+                    };
+                    this.pc.addEventListener('icegatheringstatechange', checkState);
+                }
+            });
+
+            this.updateLoadingProgress('正在加载数字人...');
+            
+            // 记录开始时间
+            const startTime = Date.now();
+            
+            // 发送 offer 到服务器
+            const response = await fetch('/offer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    sdp: this.pc.localDescription.sdp,
+                    type: this.pc.localDescription.type,
+                    avatar_id: this.avatarId
+                })
+            });
+
+            const answer = await response.json();
+            
+            // 记录耗时
+            const elapsedTime = Date.now() - startTime;
+            console.log(`Offer请求耗时: ${elapsedTime}ms`);
+            
+            if (elapsedTime > 3000) {
+                console.warn('Offer请求耗时过长，可能是因为后端需要加载avatar模型');
             }
-        });
-
-        // 发送 offer 到服务器
-        const response = await fetch('/offer', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                sdp: this.pc.localDescription.sdp,
-                type: this.pc.localDescription.type,
-                avatar_id: this.avatarId
-            })
-        });
-
-        const answer = await response.json();
-        
-        // 保存sessionid
-        this.sessionid = answer.sessionid;
-        console.log('Session ID:', this.sessionid);
-        
-        // 设置远程描述
-        await this.pc.setRemoteDescription(answer);
+            
+            this.updateLoadingProgress('正在建立视频连接...');
+            
+            // 保存sessionid
+            this.sessionid = answer.sessionid;
+            console.log('Session ID:', this.sessionid);
+            
+            // 设置远程描述
+            await this.pc.setRemoteDescription(answer);
+            
+            this.updateLoadingProgress('等待视频流...');
+        } catch (error) {
+            console.error('Negotiate失败:', error);
+            this.updateLoadingProgress('连接失败');
+            throw error;
+        }
     }
 
     setupDataChannel() {
@@ -524,14 +580,28 @@ class AvatarClient {
     }
 
     showSubtitle(text) {
-        this.subtitleOverlay.textContent = text;
-        this.subtitleOverlay.classList.add('show');
+        // 只有在字幕开启时才显示
+        if (this.subtitleEnabled) {
+            this.subtitleOverlay.textContent = text;
+            this.subtitleOverlay.classList.add('show');
+        }
     }
 
     hideSubtitle() {
         setTimeout(() => {
             this.subtitleOverlay.classList.remove('show');
         }, 2000);
+    }
+
+    // 切换字幕显示状态
+    toggleSubtitle() {
+        this.subtitleEnabled = !this.subtitleEnabled;
+        console.log('字幕状态:', this.subtitleEnabled ? '开启' : '关闭');
+        
+        // 如果关闭字幕，立即隐藏当前显示的字幕
+        if (!this.subtitleEnabled) {
+            this.subtitleOverlay.classList.remove('show');
+        }
     }
 
     // 隐藏控制按钮（calling状态）
@@ -546,13 +616,6 @@ class AvatarClient {
         document.getElementById('subtitleBtn').classList.remove('hidden');
         document.getElementById('micBtn').classList.remove('hidden');
         document.getElementById('chatToggleBtn').classList.remove('hidden');
-    }
-
-    updateLoadingState(text) {
-        const loadingText = document.querySelector('.loading-text');
-        if (loadingText) {
-            loadingText.textContent = text;
-        }
     }
 
     hideLoading() {
