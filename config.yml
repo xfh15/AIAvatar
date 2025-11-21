@@ -1,6 +1,7 @@
 LLM:
   LLM_API_KEY: "xxx"
   LLM_BASE_URL: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  LLM_MODEL_NAME: "qwen-plus"  # 可选: qwen-plus, qwen-max, qwen-turbo, gpt-4, gpt-3.5-turbo 等
 
 TTS:
   DOUBAO_APPID: "xxx"

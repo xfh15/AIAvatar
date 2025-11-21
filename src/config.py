@@ -83,6 +83,11 @@ def get_llm_base_url() -> str:
     return get_llm_config().get('LLM_BASE_URL', '')
 
 
+def get_llm_model_name() -> str:
+    """获取 LLM 模型名称"""
+    return get_llm_config().get('LLM_MODEL_NAME', 'qwen-plus')
+
+
 def get_doubao_appid() -> str:
     """获取豆包 TTS AppID"""
     return get_tts_config().get('DOUBAO_APPID', '')

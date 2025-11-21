@@ -3,17 +3,18 @@ from collections import deque
 from openai import OpenAI
 from src.basereal import BaseReal
 from src.log import logger
-from src.config import get_llm_api_key, get_llm_base_url
+from src.config import get_llm_api_key, get_llm_base_url, get_llm_model_name
 
 
 api_key = get_llm_api_key()
 base_url = get_llm_base_url()
+model_name = get_llm_model_name()
 show_api_key = api_key[:10] + "..."
 client = OpenAI(
     api_key=api_key,
     base_url=base_url,
 )
-logger.debug(f"llm api_key: {show_api_key}, llm base_url: {base_url}")
+logger.debug(f"llm api_key: {show_api_key}, llm base_url: {base_url}, llm model: {model_name}")
 
 # 全局对话历史管理
 # key: session_id, value: deque of messages (最多保留10轮，即20条消息)
@@ -100,7 +101,7 @@ def llm_response(message, nerfreal: BaseReal, session_id=None):
     
     start = time.perf_counter()
     completion = client.chat.completions.create(
-        model="qwen-plus",
+        model=model_name,  # 使用配置文件中的模型名称
         messages=messages,
         stream=True,
         stream_options={"include_usage": True}
