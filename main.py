@@ -130,8 +130,13 @@ async def offer(request):
         logger.warning(f'Avatar config not found for {avatar_id}, using default')
 
     sessionid = uuid.uuid4().int % 1000000
+    # 确保 sessionid 唯一（避免极小概率的冲突）
+    while sessionid in nerfreals:
+        logger.warning(f"Session ID {sessionid} already exists, regenerating...")
+        sessionid = uuid.uuid4().int % 1000000
+    
     nerfreals[sessionid] = None
-    logger.debug(f"sessionid={sessionid}, session num={len(nerfreals)}")
+    logger.info(f"Created new session: {sessionid}, total sessions: {len(nerfreals)}")
     
     # 使用temp_opt构建nerfreal
     temp_opt.sessionid = sessionid
@@ -163,14 +168,24 @@ async def offer(request):
 
     @pc.on("connectionstatechange")
     async def on_connectionstatechange():
-        logger.info("Connection state is %s" % pc.connectionState)
+        logger.info(f"Session {sessionid}: Connection state is {pc.connectionState}")
         if pc.connectionState == "failed":
             await pc.close()
             pcs.discard(pc)
-            del nerfreals[sessionid]
+            # 安全删除：检查 sessionid 是否存在
+            if sessionid in nerfreals:
+                logger.info(f"Session {sessionid}: Removing nerfreal due to connection failure")
+                del nerfreals[sessionid]
+            else:
+                logger.warning(f"Session {sessionid}: Already removed from nerfreals")
         if pc.connectionState == "closed":
             pcs.discard(pc)
-            del nerfreals[sessionid]
+            # 安全删除：检查 sessionid 是否存在
+            if sessionid in nerfreals:
+                logger.info(f"Session {sessionid}: Removing nerfreal due to connection closed")
+                del nerfreals[sessionid]
+            else:
+                logger.warning(f"Session {sessionid}: Already removed from nerfreals")
             # gc.collect()
     
     @pc.on("datachannel")
@@ -210,6 +225,17 @@ async def human(request):
         params = await request.json()
 
         sessionid = params.get('sessionid', 0)
+        
+        # 检查 session 是否存在
+        if sessionid not in nerfreals:
+            logger.error(f"Session {sessionid} not found in nerfreals")
+            return web.Response(
+                content_type="application/json",
+                text=json.dumps(
+                    {"code": -1, "msg": f"Session {sessionid} not found or already closed"}
+                ),
+            )
+        
         if params.get('interrupt'):
             nerfreals[sessionid].flush_talk()
 
@@ -239,6 +265,17 @@ async def interrupt_talk(request):
         params = await request.json()
 
         sessionid = params.get('sessionid', 0)
+        
+        # 检查 session 是否存在
+        if sessionid not in nerfreals:
+            logger.error(f"Session {sessionid} not found in nerfreals")
+            return web.Response(
+                content_type="application/json",
+                text=json.dumps(
+                    {"code": -1, "msg": f"Session {sessionid} not found or already closed"}
+                ),
+            )
+        
         nerfreals[sessionid].flush_talk()
 
         return web.Response(
@@ -261,6 +298,17 @@ async def humanaudio(request):
     try:
         form = await request.post()
         sessionid = int(form.get('sessionid', 0))
+        
+        # 检查 session 是否存在
+        if sessionid not in nerfreals:
+            logger.error(f"Session {sessionid} not found in nerfreals")
+            return web.Response(
+                content_type="application/json",
+                text=json.dumps(
+                    {"code": -1, "msg": f"Session {sessionid} not found or already closed"}
+                ),
+            )
+        
         fileobj = form["file"]
         filename = fileobj.filename
         filebytes = fileobj.file.read()
@@ -287,6 +335,17 @@ async def set_audiotype(request):
         params = await request.json()
 
         sessionid = params.get('sessionid', 0)
+        
+        # 检查 session 是否存在
+        if sessionid not in nerfreals:
+            logger.error(f"Session {sessionid} not found in nerfreals")
+            return web.Response(
+                content_type="application/json",
+                text=json.dumps(
+                    {"code": -1, "msg": f"Session {sessionid} not found or already closed"}
+                ),
+            )
+        
         nerfreals[sessionid].set_custom_state(params['audiotype'], params['reinit'])
 
         return web.Response(
@@ -310,6 +369,17 @@ async def record(request):
         params = await request.json()
 
         sessionid = params.get('sessionid', 0)
+        
+        # 检查 session 是否存在
+        if sessionid not in nerfreals:
+            logger.error(f"Session {sessionid} not found in nerfreals")
+            return web.Response(
+                content_type="application/json",
+                text=json.dumps(
+                    {"code": -1, "msg": f"Session {sessionid} not found or already closed"}
+                ),
+            )
+        
         if params['type'] == 'start_record':
             # nerfreals[sessionid].put_msg_txt(params['text'])
             nerfreals[sessionid].start_recording()
@@ -335,6 +405,17 @@ async def is_speaking(request):
     params = await request.json()
 
     sessionid = params.get('sessionid', 0)
+    
+    # 检查 session 是否存在
+    if sessionid not in nerfreals:
+        logger.error(f"Session {sessionid} not found in nerfreals")
+        return web.Response(
+            content_type="application/json",
+            text=json.dumps(
+                {"code": -1, "msg": f"Session {sessionid} not found or already closed"}
+            ),
+        )
+    
     return web.Response(
         content_type="application/json",
         text=json.dumps(
