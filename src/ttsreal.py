@@ -178,7 +178,7 @@ class TencentTTS(BaseTTS):
                         return
                     except:
                         end = time.perf_counter()
-                        logger.info(f"tencent Time to first chunk: {end - start}s")
+                        logger.debug(f"tencent Time to first chunk: {end - start}s")
                         first = False
                 if chunk and self.state == State.RUNNING:
                     yield chunk
@@ -189,12 +189,19 @@ class TencentTTS(BaseTTS):
         text, textevent = msg
         first = True
         last_stream = np.array([], dtype=np.float32)
-        frame_count = 0
-        
         for chunk in audio_stream:
             if chunk is not None and len(chunk) > 0:
                 stream = np.frombuffer(chunk, dtype=np.int16).astype(np.float32) / 32767
+                
+                # 拼接音频流
                 stream = np.concatenate((last_stream, stream))
+                
+                # 全局削波保护
+                max_val = np.max(np.abs(stream))
+                if max_val > 1.0:
+                    logger.warning(f"TencentTTS stream clipping: max={max_val:.3f}, normalizing")
+                    stream = stream / max_val
+                
                 streamlen = stream.shape[0]
                 idx = 0
                 while streamlen >= self.chunk:
@@ -204,17 +211,27 @@ class TencentTTS(BaseTTS):
                         eventpoint.update(**textevent)
                         first = False
                     
-                    self.parent.put_audio_frame(stream[idx:idx + self.chunk], eventpoint)
+                    current_frame = stream[idx:idx + self.chunk]
+                    # 二次检查帧安全性
+                    frame_max = np.max(np.abs(current_frame))
+                    if frame_max > 1.0:
+                        current_frame = np.clip(current_frame, -1.0, 1.0)
+                    
+                    self.parent.put_audio_frame(current_frame, eventpoint)
                     streamlen -= self.chunk
                     idx += self.chunk
-                    frame_count += 1
-                last_stream = stream[idx:]  # get the remain stream
+                last_stream = stream[idx:]
         
-        # 发送结束事件(使用静音帧)
+        # 处理剩余数据，使用淡出
+        if len(last_stream) > 0:
+            fade_length = min(len(last_stream), 160)
+            if fade_length > 0:
+                fade_out = np.linspace(1.0, 0.0, fade_length)
+                last_stream[-fade_length:] *= fade_out
+        
         eventpoint = {'status': 'end', 'text': text}
         eventpoint.update(**textevent)
         self.parent.put_audio_frame(np.zeros(self.chunk, np.float32), eventpoint)
-        logger.debug(f'TencentTTS stream completed: {frame_count} frames for text: {text[:20]}...')
 
     ###########################################################################################
 
@@ -226,8 +243,9 @@ class DoubaoTTS(BaseTTS):
         appid = get_doubao_appid()
         token = get_doubao_token()
         self.token = token
+        show_token = self.token[:6] + "..."
         logger.info(f"DoubaoTTS appid: {appid}")
-        logger.info(f"DoubaoTTS token: {token}")
+        logger.info(f"DoubaoTTS token: {show_token}")
         _cluster = 'volcano_tts'
         self.api_url = f"wss://openspeech.bytedance.com/api/v1/tts/ws_binary"
 
@@ -277,8 +295,6 @@ class DoubaoTTS(BaseTTS):
 
             header = {"Authorization": f"Bearer;{self.token}"}
             first = True
-            show_token = self.token[:6] + "..."
-            logger.info(f"doubao tts api_url: {self.api_url}, token: {show_token}")
             async with websockets.connect(self.api_url, max_size=10 * 1024 * 1024, additional_headers=header) as ws:
                 await ws.send(full_client_request)
                 while True:
@@ -294,7 +310,7 @@ class DoubaoTTS(BaseTTS):
                         else:
                             if first:
                                 end = time.perf_counter()
-                                logger.info(f"doubao tts Time to first chunk: {end - start}s")
+                                logger.debug(f"doubao tts Time to first chunk: {end - start}s")
                                 first = False
                             sequence_number = int.from_bytes(payload[:4], "big", signed=True)
                             payload = payload[8:]
@@ -319,12 +335,13 @@ class DoubaoTTS(BaseTTS):
         text, textevent = msg
         first = True
         last_stream = np.array([], dtype=np.float32)
-        frame_count = 0
-        
         async for chunk in audio_stream:
             if chunk is not None and len(chunk) > 0:
                 stream = np.frombuffer(chunk, dtype=np.int16).astype(np.float32) / 32767
+                
+                # 拼接音频流
                 stream = np.concatenate((last_stream, stream))
+                
                 streamlen = stream.shape[0]
                 idx = 0
                 while streamlen >= self.chunk:
@@ -334,17 +351,17 @@ class DoubaoTTS(BaseTTS):
                         eventpoint.update(**textevent)
                         first = False
                     
-                    self.parent.put_audio_frame(stream[idx:idx + self.chunk], eventpoint)
+                    current_frame = stream[idx:idx + self.chunk]
+                    self.parent.put_audio_frame(current_frame, eventpoint)
                     streamlen -= self.chunk
                     idx += self.chunk
-                    frame_count += 1
-                last_stream = stream[idx:]  # get the remain stream
+                last_stream = stream[idx:]
         
         # 发送结束事件(使用静音帧)
         eventpoint = {'status': 'end', 'text': text}
         eventpoint.update(**textevent)
         self.parent.put_audio_frame(np.zeros(self.chunk, np.float32), eventpoint)
-        logger.debug(f'DoubaoTTS stream completed: {frame_count} frames for text: {text[:20]}...')
+        # logger.debug(f'DoubaoTTS stream completed. text: {text[:20]}...')
 
 
 ###########################################################################################
@@ -475,8 +492,9 @@ class DoubaoTTS3(BaseTTS):
         return "seed-tts-2.0"
 
     async def doubao_voice_3(self, text):
-        """使用DoubaoTTS双向协议获取TTS音频流 - 参考test_tts_detailed.py"""
+        """使用DoubaoTTS双向协议获取TTS音频流"""
         start = time.perf_counter()
+        # logger.debug(f"DoubaoTTS3 start processing text: {text}")
         
         try:
             # 验证认证信息
@@ -486,20 +504,13 @@ class DoubaoTTS3(BaseTTS):
             resource_id = self.get_resource_id(self.voice_type)
             connect_id = str(uuid.uuid4())
             
-            # 构建认证headers - 参考test_tts_detailed.py
+            # 构建认证headers
             headers = {
                 "X-Api-App-Key": self.appid,
                 "X-Api-Access-Key": self.token,
                 "X-Api-Resource-Id": resource_id,
                 "X-Api-Connect-Id": connect_id,
             }
-            
-            # logger.info(f"DoubaoTTS3 connecting to: {self.api_url}")
-            # logger.info(f"Voice type: {self.voice_type}")
-            # logger.info(f"Resource ID: {resource_id}")
-            # logger.info(f"Connect ID: {connect_id}")
-            # logger.debug(f"AppID (first 10 chars): {self.appid[:10] if self.appid else 'None'}")
-            # logger.debug(f"Access-Key (first 10 chars): {self.token[:10] if self.token else 'None'}")
             
             first = True
             chunk_count = 0
@@ -512,13 +523,13 @@ class DoubaoTTS3(BaseTTS):
                 ) as websocket:
                     await self.start_connection(websocket)
                     
-                    # 等待ConnectionStarted事件（手动处理）
+                    # 等待ConnectionStarted事件
                     while True:
                         msg = await self.receive_message(websocket)
                         if msg.type == self.MsgType.FullServerResponse and msg.event == self.EventType.ConnectionStarted:
                             break
                     
-                    # 整句处理，不再分割
+                    # 直接处理整句文本
                     session_id = str(uuid.uuid4())
                     
                     # 构建基础请求
@@ -529,7 +540,7 @@ class DoubaoTTS3(BaseTTS):
                             "speaker": self.voice_type,
                             "audio_params": {
                                 "format": "pcm",
-                                "sample_rate": 24000,  # 使用24000Hz采样率
+                                "sample_rate": 24000,
                                 "enable_timestamp": True,
                             },
                             "additions": json.dumps({
@@ -538,42 +549,38 @@ class DoubaoTTS3(BaseTTS):
                         },
                     }
                     
-                    # 启动会话 - 使用协议库函数
+                    # 启动会话
                     start_session_request = copy.deepcopy(base_request)
                     start_session_request["event"] = self.EventType.StartSession
                     await self.start_session(websocket, json.dumps(start_session_request).encode(), session_id)
                     
-                    # 等待SessionStarted事件（手动处理，避免wait_for_event抛出异常）
+                    # 等待SessionStarted事件
                     while True:
                         msg = await self.receive_message(websocket)
                         if msg.type == self.MsgType.FullServerResponse and msg.event == self.EventType.SessionStarted:
                             break
                     
-                    # 逐字符发送文本（异步后台任务）
+                    # 逐字符发送文本
                     async def send_chars():
-                        logger.debug(f"DoubaoTTS3 发送句子: {len(text)} 个字符, top10: {text[:10]}...")
                         for char in text:
                             synthesis_request = copy.deepcopy(base_request)
                             synthesis_request["event"] = self.EventType.TaskRequest
                             synthesis_request["req_params"]["text"] = char
                             await self.task_request(websocket, json.dumps(synthesis_request).encode(), session_id)
                             
-                            # 根据字符类型调整延迟，参考 bidirection.py 但增加延迟以降低语速
+                            # 根据字符类型调整延迟
                             if char in '，。！？；：、':
-                                # 标点符号需要更长延迟，让语音有停顿感
-                                await asyncio.sleep(0.05)  # 50ms延迟
+                                await asyncio.sleep(0.05)
                             elif char in '\n\t ':
-                                # 空格和换行也需要延迟
-                                await asyncio.sleep(0.03)  # 30ms延迟
+                                await asyncio.sleep(0.03)
                             else:
-                                # 普通字符延迟，比 bidirection.py 的 5ms 更长以降低语速
-                                await asyncio.sleep(0.02)  # 20ms延迟
+                                await asyncio.sleep(0.02)
                         await self.finish_session(websocket, session_id)
                     
                     # 开始后台发送字符
                     send_task = asyncio.create_task(send_chars())
                     
-                    # 接收音频数据 - 使用协议库函数
+                    # 接收音频数据
                     while True:
                         try:
                             msg = await self.receive_message(websocket)
@@ -594,10 +601,9 @@ class DoubaoTTS3(BaseTTS):
                                 error_info = f"错误代码: {msg.error_code}"
                                 if msg.payload:
                                     try:
-                                        # 尝试解析错误payload（可能是gzip压缩的JSON）
                                         payload_data = msg.payload
                                         
-                                        # 检查是否是gzip压缩（gzip magic number: 1f 8b）
+                                        # 检查是否是gzip压缩
                                         if len(payload_data) >= 2 and payload_data[:2] == b'\x1f\x8b':
                                             try:
                                                 decompressed = gzip.decompress(payload_data)
@@ -623,7 +629,7 @@ class DoubaoTTS3(BaseTTS):
                                 # 抛出异常，终止音频流
                                 raise Exception(f"TTS服务返回错误: {error_info}")
                             else:
-                                logger.warning(f"⚠️ 未处理的消息类型: {msg.type}")
+                                logger.warning(f"未处理的消息类型: {msg.type}")
                                         
                         except Exception as e:
                             logger.error(f"接收消息错误: {e}")
@@ -633,7 +639,7 @@ class DoubaoTTS3(BaseTTS):
                     await send_task
                     await self.finish_connection(websocket)
                     
-                    # 等待ConnectionFinished事件（手动处理）
+                    # 等待ConnectionFinished事件
                     while True:
                         msg = await self.receive_message(websocket)
                         if msg.type == self.MsgType.FullServerResponse and msg.event == self.EventType.ConnectionFinished:
@@ -688,17 +694,18 @@ class DoubaoTTS3(BaseTTS):
                     
                     # 将字节数据转换为numpy数组（24000Hz采样率）
                     stream_24k = np.frombuffer(chunk, dtype=np.int16).astype(np.float32) / 32767
-                    samples_24k = len(stream_24k)
                     
                     # 重采样：24000Hz -> 16000Hz
-                    # 使用正确的参数名，确保重采样正确
-                    stream = resampy.resample(x=stream_24k, sr_orig=24000, sr_new=16000)
-                    samples_16k = len(stream)
+                    stream = resampy.resample(
+                        x=stream_24k, 
+                        sr_orig=24000, 
+                        sr_new=16000
+                    )
                     
+                    # 拼接音频流
                     stream = np.concatenate((last_stream, stream))
                     streamlen = stream.shape[0]
                     idx = 0
-                    frame_count = 0
                     
                     while streamlen >= self.chunk:
                         eventpoint = {}
@@ -707,37 +714,30 @@ class DoubaoTTS3(BaseTTS):
                             eventpoint.update(**textevent)
                             first = False
                         
-                        # 获取当前帧并发送
                         current_frame = stream[idx:idx + self.chunk]
                         self.parent.put_audio_frame(current_frame, eventpoint)
                         streamlen -= self.chunk
                         idx += self.chunk
-                        frame_count += 1
                     
-                    last_stream = stream[idx:]  # get the remain stream
+                    last_stream = stream[idx:]
             
-            # 处理剩余的音频数据（不足一个chunk的）
+            # 处理剩余的音频数据
             if len(last_stream) > 0:
-                # 如果有剩余数据，发送剩余数据（用零填充到完整chunk），并附带结束事件
+                # 零填充到完整chunk
                 padded_frame = np.zeros(self.chunk, dtype=np.float32)
                 padded_frame[:len(last_stream)] = last_stream
+                
                 eventpoint = {'status': 'end', 'text': text}
                 eventpoint.update(**textevent)
                 self.parent.put_audio_frame(padded_frame, eventpoint)
-                # logger.info(f"📤 发送剩余音频数据: {len(last_stream)} samples (填充到 {self.chunk} samples)，附带结束事件")
-            else:
-                # 如果没有剩余数据，发送结束事件（使用一个很小的帧，但尽量不产生静音）
-                # 这里我们选择不发送额外的静音帧，结束事件会在其他地方处理
-                logger.info(f"📊 TTS3流处理完成: {chunk_count} chunks，无剩余数据，不发送静音帧")
             
         except Exception as e:
             logger.exception(f'DoubaoTTS3 stream_tts_3 error: {e}')
-            # 处理剩余的音频数据（如果有）
+            # 剩余数据
             if len(last_stream) > 0:
                 padded_frame = np.zeros(self.chunk, dtype=np.float32)
                 padded_frame[:len(last_stream)] = last_stream
                 eventpoint = {'status': 'end', 'text': text}
                 eventpoint.update(**textevent)
                 self.parent.put_audio_frame(padded_frame, eventpoint)
-                logger.info(f"📤 异常时发送剩余音频数据: {len(last_stream)} samples，附带结束事件")
-            # 如果没有剩余数据，不发送额外的静音帧
+                logger.debug(f"Send remaining audio on error")

@@ -110,6 +110,10 @@ def llm_response(message, nerfreal: BaseReal, session_id=None):
     result = ""
     assistant_response = ""  # 完整的助手响应
     first = True
+    first_tts = True  # 是否是第一次发送TTS
+    
+    # 只在大标点处分割（句号、问号、感叹号、分号）
+    major_punctuation = "。！？；.!?;"
     
     for chunk in completion:
         if len(chunk.choices) > 0:
@@ -122,22 +126,24 @@ def llm_response(message, nerfreal: BaseReal, session_id=None):
                 assistant_response += msg  # 累积完整响应
                 lastpos = 0
                 for i, char in enumerate(msg):
-                    if char in ",.!;:，。！？：；":
+                    # 只在大标点处分割
+                    if char in major_punctuation:
                         result = result + msg[lastpos:i + 1]
                         lastpos = i + 1
-                        if len(result) > 10:
-                            logger.info(result)
+                        # 立即发送给TTS，无需等待长度限制
+                        if len(result.strip()) > 0:
+                            if first_tts:
+                                first_tts = False
                             nerfreal.put_msg_txt(result)
                             result = ""
                 result = result + msg[lastpos:]
     
     end = time.perf_counter()
-    if result:
+    # 处理最后剩余的文本（如果没有以大标点结尾）
+    if result.strip():
         nerfreal.put_msg_txt(result)
     
     # 保存到对话历史
     add_to_history(session_id, 'user', message)
     add_to_history(session_id, 'assistant', assistant_response)
     
-    logger.debug(f"Session {session_id}: Assistant response: {assistant_response[:100]}{'...' if len(assistant_response) > 100 else ''}")
-    logger.debug(f"Session {session_id}: Total time: {end - start:.2f}s")

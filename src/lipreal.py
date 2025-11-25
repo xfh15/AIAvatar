@@ -29,6 +29,7 @@ import queue
 from queue import Queue
 from threading import Thread, Event
 import torch.multiprocessing as mp
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from tqdm import tqdm
 from src.basereal import BaseReal
@@ -75,7 +76,7 @@ def load_avatar(avatar_id):
     
     # 检查缓存
     if avatar_id in _avatar_cache:
-        logger.info(f'✓ Avatar "{avatar_id}" loaded from cache')
+        logger.info(f'Avatar "{avatar_id}" loaded from cache')
         return _avatar_cache[avatar_id]
     
     logger.info(f'Loading avatar "{avatar_id}" from disk...')
@@ -95,7 +96,7 @@ def load_avatar(avatar_id):
 
     # 缓存结果
     _avatar_cache[avatar_id] = (frame_list_cycle, face_list_cycle, coord_list_cycle)
-    logger.info(f'✓ Avatar "{avatar_id}" loaded and cached (full: {len(frame_list_cycle)}, face: {len(face_list_cycle)})')
+    logger.info(f'Avatar "{avatar_id}" loaded and cached (full: {len(frame_list_cycle)}, face: {len(face_list_cycle)})')
     
     return frame_list_cycle, face_list_cycle, coord_list_cycle
 
@@ -141,12 +142,69 @@ def warm_up(batch_size, model, modelres):
     model(mel_batch, img_batch)
 
 
-def read_imgs(img_list):
-    frames = []
-    logger.info('reading images...')
-    for img_path in tqdm(img_list):
-        frame = cv2.imread(img_path)
-        frames.append(frame)
+def read_imgs(img_list, max_workers=8):
+    """并发读取图像列表，提升加载速度
+    
+    Args:
+        img_list: 图像文件路径列表
+        max_workers: 最大并发线程数，默认8
+        
+    Returns:
+        成功读取的图像帧列表（保持原始顺序）
+    """
+    def load_single_image(img_path):
+        """加载单张图像"""
+        try:
+            frame = cv2.imread(img_path)
+            if frame is None:
+                logger.warning(f"Failed to load image: {img_path}")
+                return None
+            return frame
+        except Exception as e:
+            logger.error(f"Error loading image {img_path}: {e}")
+            return None
+    
+    frames = [None] * len(img_list)
+    failed_count = 0
+    
+    logger.info(f'Reading {len(img_list)} images with {max_workers} workers...')
+    start_time = time.perf_counter()
+    
+    # 使用线程池并发读取图像
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # 提交所有任务，保存索引
+        future_to_index = {
+            executor.submit(load_single_image, img_path): idx 
+            for idx, img_path in enumerate(img_list)
+        }
+        
+        # 使用tqdm显示进度
+        with tqdm(total=len(img_list), desc="Loading images") as pbar:
+            for future in as_completed(future_to_index):
+                idx = future_to_index[future]
+                try:
+                    frame = future.result()
+                    if frame is not None:
+                        frames[idx] = frame
+                    else:
+                        failed_count += 1
+                except Exception as e:
+                    logger.error(f"Unexpected error for image {idx}: {e}")
+                    failed_count += 1
+                pbar.update(1)
+    
+    # 过滤掉失败的图像
+    frames = [f for f in frames if f is not None]
+    
+    elapsed = time.perf_counter() - start_time
+    logger.info(f'Loaded {len(frames)} images in {elapsed:.2f}s ({len(frames)/elapsed:.1f} imgs/s)')
+    
+    if failed_count > 0:
+        logger.warning(f'Failed to load {failed_count} images')
+    
+    if len(frames) == 0:
+        raise ValueError("No images were successfully loaded")
+    
     return frames
 
 

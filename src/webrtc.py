@@ -192,7 +192,7 @@ class HumanPlayer:
                         }
                         if self._data_channel.readyState == 'open':
                             self._data_channel.send(json.dumps(message))
-                            logger.debug(f"Sent LLM message: {message['text']}")
+                            logger.debug(f"message: {message['text']}")
                 except Exception as e:
                     logger.error(f"Failed to send data channel message: {e}")
 

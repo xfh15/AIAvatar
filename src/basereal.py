@@ -26,7 +26,7 @@ import resampy
 
 import queue
 from tqdm import tqdm
-from threading import Thread, Event
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from io import BytesIO
 import soundfile as sf
 
@@ -38,12 +38,70 @@ from src.log import logger
 from src.audio_monitor import get_monitor
 
 
-def read_imgs(img_list):
-    frames = []
-    logger.info('reading images...')
-    for img_path in tqdm(img_list):
-        frame = cv2.imread(img_path)
-        frames.append(frame)
+def read_imgs(img_list, max_workers=8):
+    """并发读取图像列表，提升加载速度
+    
+    Args:
+        img_list: 图像文件路径列表
+        max_workers: 最大并发线程数，默认8
+        
+    Returns:
+        成功读取的图像帧列表（保持原始顺序）
+    """
+
+    def load_single_image(img_path):
+        """加载单张图像"""
+        try:
+            frame = cv2.imread(img_path)
+            if frame is None:
+                logger.warning(f"Failed to load image: {img_path}")
+                return None
+            return frame
+        except Exception as e:
+            logger.error(f"Error loading image {img_path}: {e}")
+            return None
+
+    frames = [None] * len(img_list)
+    failed_count = 0
+
+    logger.info(f'Reading {len(img_list)} images with {max_workers} workers...')
+    start_time = time.perf_counter()
+
+    # 使用线程池并发读取图像
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # 提交所有任务，保存索引
+        future_to_index = {
+            executor.submit(load_single_image, img_path): idx
+            for idx, img_path in enumerate(img_list)
+        }
+
+        # 使用tqdm显示进度
+        with tqdm(total=len(img_list), desc="Loading images") as pbar:
+            for future in as_completed(future_to_index):
+                idx = future_to_index[future]
+                try:
+                    frame = future.result()
+                    if frame is not None:
+                        frames[idx] = frame
+                    else:
+                        failed_count += 1
+                except Exception as e:
+                    logger.error(f"Unexpected error for image {idx}: {e}")
+                    failed_count += 1
+                pbar.update(1)
+
+    # 过滤掉失败的图像
+    frames = [f for f in frames if f is not None]
+
+    elapsed = time.perf_counter() - start_time
+    logger.info(f'Loaded {len(frames)} images in {elapsed:.2f}s ({len(frames) / elapsed:.1f} imgs/s)')
+
+    if failed_count > 0:
+        logger.warning(f'Failed to load {failed_count} images')
+
+    if len(frames) == 0:
+        raise ValueError("No images were successfully loaded")
+
     return frames
 
 
@@ -95,9 +153,9 @@ class BaseReal:
         self.custom_index = {}
         self.custom_opt = {}
         self.__loadcustom()
-        
-        # 初始化音频监控 (可通过环境变量AUDIO_MONITOR=0关闭)
-        enable_monitor = os.getenv('AUDIO_MONITOR', '1') == '1'
+
+        # 初始化音频监控 (可通过环境变量AUDIO_MONITOR=0关闭，=1开启)
+        enable_monitor = os.getenv('AUDIO_MONITOR', '0') == '1'
         self.audio_monitor = get_monitor(enable=enable_monitor)
 
     def put_msg_txt(self, msg, datainfo: dict = {}):
@@ -324,22 +382,31 @@ class BaseReal:
 
             for audio_frame in audio_frames:
                 frame, type, eventpoint = audio_frame
+
+                # 削波保护：确保音频数据在 [-1.0, 1.0] 范围内
+                max_val = np.max(np.abs(frame))
+                if max_val > 1.0:
+                    logger.warning(
+                        f"Audio clipping detected before conversion: max={max_val:.3f}, applying normalization")
+                    frame = np.clip(frame, -1.0, 1.0)
+
+                # 转换为 int16，使用安全的缩放
                 frame = (frame * 32767).astype(np.int16)
 
                 # webrtc
                 new_frame = AudioFrame(format='s16', layout='mono', samples=frame.shape[0])
                 new_frame.planes[0].update(frame.tobytes())
                 new_frame.sample_rate = 16000
-                
+
                 # 记录音频帧生产
                 self.audio_monitor.record_frame_produced()
-                
+
                 # 优化音频队列放入逻辑,避免阻塞导致掉帧
                 # 如果队列满,尝试非阻塞放入,失败则记录警告但继续处理
                 try:
                     # 使用put_nowait避免阻塞,如果队列满会抛出QueueFull异常
                     future = asyncio.run_coroutine_threadsafe(
-                        audio_track._queue.put((new_frame, eventpoint)), 
+                        audio_track._queue.put((new_frame, eventpoint)),
                         loop
                     )
                     # 设置较短的超时时间(50ms),避免长时间等待
@@ -352,7 +419,8 @@ class BaseReal:
                     self._audio_queue_warning_count += 1
                     # 每100次只记录1次,避免日志刷屏
                     if self._audio_queue_warning_count % 100 == 1:
-                        logger.warning(f'Audio queue full or timeout, dropped frames: {self._audio_queue_warning_count}')
-                
+                        logger.warning(
+                            f'Audio queue full or timeout, dropped frames: {self._audio_queue_warning_count}')
+
                 self.record_audio_data(frame)
         logger.info('basereal process_frames thread stop')
