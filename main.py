@@ -472,7 +472,7 @@ if __name__ == '__main__':
     for route in list(appasync.router.routes()):
         cors.add(route)
 
-    logger.info('如果使用webrtc，推荐访问webrtc集成前端: http://127.0.0.1:' + str(opt.port) + '/index.html')
+    logger.info('如果使用webrtc，推荐访问webrtc集成前端: http://0.0.0.0:' + str(opt.port) + '/index.html')
 
     runner = web.AppRunner(appasync)
     loop = asyncio.new_event_loop()
