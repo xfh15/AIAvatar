@@ -10,6 +10,7 @@ class AvatarClient {
         this.mediaRecorder = null;
         this.audioChunks = [];
         this.recognition = null;
+        this.iceServers = [];
         
         // 状态管理
         this.isConnected = false;
@@ -38,6 +39,9 @@ class AvatarClient {
         try {
             // 从API获取avatar配置
             await this.loadAvatarConfig();
+
+            // 从API获取WebRTC配置
+            await this.loadWebRTCConfig();
             
             // 设置页面标题
             document.title = `与${this.avatarName}对话`;
@@ -89,6 +93,19 @@ class AvatarClient {
         }
     }
 
+    async loadWebRTCConfig() {
+        try {
+            const response = await fetch('/api/webrtc');
+            const result = await response.json();
+
+            if (result.code === 0 && result.data && Array.isArray(result.data.iceServers)) {
+                this.iceServers = result.data.iceServers;
+            }
+        } catch (error) {
+            console.warn('加载WebRTC配置失败:', error);
+        }
+    }
+
     setLoadingBackground() {
         if (this.avatarImage) {
             // 设置加载遮罩的背景图（使用独立的背景层）
@@ -118,7 +135,7 @@ class AvatarClient {
             // 创建 RTCPeerConnection
             this.pc = new RTCPeerConnection({
                 sdpSemantics: 'unified-plan',
-                iceServers: []
+                iceServers: this.iceServers
             });
 
             // 监听远程视频流

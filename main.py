@@ -10,7 +10,7 @@ import torch.multiprocessing as mp
 from aiohttp import web
 import aiohttp
 import aiohttp_cors
-from aiortc import RTCPeerConnection, RTCSessionDescription, RTCConfiguration
+from aiortc import RTCPeerConnection, RTCSessionDescription, RTCConfiguration, RTCIceServer
 from aiortc.rtcrtpsender import RTCRtpSender
 
 import argparse
@@ -24,7 +24,13 @@ from src.basereal import BaseReal
 from src.llm import llm_response
 from src.log import logger
 from src.get_file import http_get
-from src.config import get_model_download_config, get_avatar_download_config, get_avatars_config, get_avatar_config
+from src.config import (
+    get_model_download_config,
+    get_avatar_download_config,
+    get_avatars_config,
+    get_avatar_config,
+    get_webrtc_ice_servers,
+)
 
 app = Flask(__name__)
 nerfreals: Dict[int, BaseReal] = {}  # sessionid:BaseReal
@@ -37,6 +43,25 @@ pcs = set()
 
 pwd_path = os.path.abspath(os.path.dirname(__file__))
 default_model_path = os.path.join(pwd_path, 'models/wav2lip.pth')
+
+
+def build_ice_servers():
+    servers = []
+    for server in get_webrtc_ice_servers():
+        if not isinstance(server, dict):
+            continue
+        urls = server.get("urls")
+        if not urls:
+            continue
+        if isinstance(urls, str):
+            urls = [urls]
+        kwargs = {}
+        if server.get("username"):
+            kwargs["username"] = server["username"]
+        if server.get("credential"):
+            kwargs["credential"] = server["credential"]
+        servers.append(RTCIceServer(urls=urls, **kwargs))
+    return servers
 
 
 def ensure_models_and_avatars():
@@ -157,7 +182,7 @@ async def offer(request):
     nerfreal = LipReal(temp_opt, model, session_avatar)
     nerfreals[sessionid] = nerfreal
     pc = RTCPeerConnection(configuration=RTCConfiguration(
-        iceServers=[],
+        iceServers=build_ice_servers(),
     ))
     pcs.add(pc)
 
@@ -364,6 +389,25 @@ async def get_avatars(request):
         )
 
 
+async def get_webrtc_config_api(request):
+    """获取 WebRTC ICE 配置"""
+    try:
+        return web.Response(
+            content_type="application/json",
+            text=json.dumps(
+                {"code": 0, "data": {"iceServers": get_webrtc_ice_servers()}}
+            ),
+        )
+    except Exception as e:
+        logger.exception('get_webrtc_config exception:')
+        return web.Response(
+            content_type="application/json",
+            text=json.dumps(
+                {"code": -1, "msg": str(e)}
+            ),
+        )
+
+
 async def on_shutdown(app):
     # close peer connections
     coros = [pc.close() for pc in pcs]
@@ -457,6 +501,7 @@ if __name__ == '__main__':
     appasync.router.add_post("/interrupt_talk", interrupt_talk)
     appasync.router.add_post("/is_speaking", is_speaking)
     appasync.router.add_get("/api/avatars", get_avatars)
+    appasync.router.add_get("/api/webrtc", get_webrtc_config_api)
     appasync.router.add_static('/data', path='data')  # 添加data目录的静态文件访问
     appasync.router.add_static('/', path='static')
 

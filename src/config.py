@@ -72,6 +72,27 @@ def get_tts_config() -> dict:
     return config.get('TTS', {})
 
 
+def get_webrtc_config() -> dict:
+    """
+    获取 WebRTC 配置
+
+    Returns:
+        WebRTC 配置字典
+    """
+    config = get_config()
+    return config.get('WEBRTC', {})
+
+
+def get_webrtc_ice_servers() -> list:
+    """
+    获取 WebRTC ICE Servers 配置
+
+    Returns:
+        ICE Servers 列表
+    """
+    return get_webrtc_config().get('ICE_SERVERS', []) or []
+
+
 # 便捷函数
 def get_llm_api_key() -> str:
     """获取 LLM API Key"""
@@ -199,4 +220,3 @@ def get_avatar_config(avatar_id: str) -> dict:
             return avatar
     
     return None
-

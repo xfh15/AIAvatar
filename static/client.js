@@ -1,6 +1,19 @@
 var pc = null;
 var dc = null; // 数据通道
 
+async function loadIceServers() {
+    try {
+        const response = await fetch('/api/webrtc');
+        const result = await response.json();
+        if (result.code === 0 && result.data && Array.isArray(result.data.iceServers)) {
+            return result.data.iceServers;
+        }
+    } catch (error) {
+        console.warn('加载WebRTC配置失败:', error);
+    }
+    return [];
+}
+
 function negotiate() {
     pc.addTransceiver('video', { direction: 'recvonly' });
     pc.addTransceiver('audio', { direction: 'recvonly' });
@@ -44,9 +57,13 @@ function negotiate() {
 }
 
 function start() {
+    return startInternal();
+}
+
+async function startInternal() {
     var config = {
         sdpSemantics: 'unified-plan',
-        iceServers: []
+        iceServers: await loadIceServers()
     };
 
     pc = new RTCPeerConnection(config);

@@ -67,3 +67,12 @@ AVATARS:
         type: "doubao"
         voice: "ICL_zh_male_hanhoudunshi_tob"
 
+# WebRTC 配置
+WEBRTC:
+  # ICE Servers 列表（支持 STUN/TURN）
+  # 示例：
+  ICE_SERVERS:
+    - urls: ["stun:stun.l.google.com:19302"]
+    - urls: ["turn:digital.z-soft.jp:3478"]
+      username: "turnuser"
+      credential: "turnpass"
