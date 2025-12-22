@@ -1,11 +1,12 @@
 LLM:
-  LLM_API_KEY: "xxx"
-  LLM_BASE_URL: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-  LLM_MODEL_NAME: "qwen-plus"  # 可选: qwen-plus, qwen-max, qwen-turbo, gpt-4, gpt-3.5-turbo 等
+  LLM_API_KEY: "AIzaSyDlvP-2e1iKSHCIzK65QiZvcdpFoPwlUGI"
+  #LLM_BASE_URL: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  LLM_BASE_URL: "https://generativelanguage.googleapis.com/v1beta/openai/"
+  LLM_MODEL_NAME: "gemini-2.5-flash"  # 可选: qwen-plus, qwen-max, qwen-turbo, gpt-4, gpt-3.5-turbo 等
 
 TTS:
-  DOUBAO_APPID: "xxx"
-  DOUBAO_TOKEN: "xxx"
+  DOUBAO_APPID: "3670162844"
+  DOUBAO_TOKEN: "Jgc1ewlA6hBgHhKAbzMGAgjtnuUg4m_a"
 
 DOWNLOAD:
   BASE_URL: "https://huggingface.co/shibing624/ai-avatar-wav2lip/resolve/main"
