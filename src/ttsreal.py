@@ -242,6 +242,8 @@ class DoubaoTTS(BaseTTS):
         # 从配置中读取火山引擎参数
         appid = get_doubao_appid()
         token = get_doubao_token()
+        if not token:
+            raise ValueError("DoubaoTTS 需要配置 DOUBAO_TOKEN")
         self.token = token
         show_token = self.token[:6] + "..."
         logger.info(f"DoubaoTTS appid: {appid}")
@@ -284,6 +286,7 @@ class DoubaoTTS(BaseTTS):
             submit_request_json = copy.deepcopy(self.request_json)
             submit_request_json["user"]["uid"] = self.parent.sessionid
             submit_request_json["audio"]["voice_type"] = voice_type
+            submit_request_json["app"]["token"] = self.token  # 使用真实 token
             submit_request_json["request"]["text"] = text
             submit_request_json["request"]["reqid"] = str(uuid.uuid4())
             submit_request_json["request"]["operation"] = "submit"
