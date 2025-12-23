@@ -326,9 +326,18 @@ class DoubaoTTS(BaseTTS):
                             if len(raw_payload) >= 2 and raw_payload[:2] == b'\x1f\x8b':
                                 raw_payload = gzip.decompress(raw_payload)
                             text_payload = raw_payload.decode("utf-8", errors="ignore")
+                            try:
+                                import json as _json
+                                payload_obj = _json.loads(text_payload)
+                            except Exception:
+                                payload_obj = text_payload
                         except Exception:
-                            text_payload = f"<non-text payload len={len(payload)}>"
-                        logger.error(f"DoubaoTTS non-audio response: type={message_type}, flags={message_type_specific_flags}, payload={text_payload[:200]}")
+                            payload_obj = f"<non-text payload len={len(payload)}>"
+                        # 打印前 200 字符 + 前 32 字节 hex，便于定位错误码
+                        hex_prefix = payload[:32].hex()
+                        logger.error(
+                            f"DoubaoTTS non-audio response: type={message_type}, flags={message_type_specific_flags}, payload={payload_obj}, hex_prefix={hex_prefix}"
+                        )
                         break
         except Exception as e:
             logger.exception('doubao')
