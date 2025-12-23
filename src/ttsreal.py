@@ -321,6 +321,14 @@ class DoubaoTTS(BaseTTS):
                         if sequence_number < 0:
                             break
                     else:
+                        try:
+                            raw_payload = payload
+                            if len(raw_payload) >= 2 and raw_payload[:2] == b'\x1f\x8b':
+                                raw_payload = gzip.decompress(raw_payload)
+                            text_payload = raw_payload.decode("utf-8", errors="ignore")
+                        except Exception:
+                            text_payload = f"<non-text payload len={len(payload)}>"
+                        logger.error(f"DoubaoTTS non-audio response: type={message_type}, flags={message_type_specific_flags}, payload={text_payload[:200]}")
                         break
         except Exception as e:
             logger.exception('doubao')
