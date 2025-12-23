@@ -323,14 +323,31 @@ class DoubaoTTS(BaseTTS):
                     else:
                         try:
                             raw_payload = payload
-                            if len(raw_payload) >= 2 and raw_payload[:2] == b'\x1f\x8b':
-                                raw_payload = gzip.decompress(raw_payload)
-                            text_payload = raw_payload.decode("utf-8", errors="ignore")
-                            try:
-                                import json as _json
-                                payload_obj = _json.loads(text_payload)
-                            except Exception:
-                                payload_obj = text_payload
+                            # 有些消息前 8 字节是序列号等元数据，尝试跳过再解压
+                            candidates = [raw_payload]
+                            if len(raw_payload) > 8:
+                                candidates.append(raw_payload[8:])
+                            payload_obj = None
+                            for cand in candidates:
+                                if len(cand) >= 2 and cand[:2] == b'\x1f\x8b':
+                                    try:
+                                        cand = gzip.decompress(cand)
+                                    except Exception:
+                                        pass
+                                try:
+                                    text_payload = cand.decode("utf-8")
+                                    import json as _json
+                                    payload_obj = _json.loads(text_payload)
+                                    break
+                                except Exception:
+                                    try:
+                                        text_payload = cand.decode("utf-8", errors="ignore")
+                                        payload_obj = text_payload
+                                        break
+                                    except Exception:
+                                        continue
+                            if payload_obj is None:
+                                payload_obj = f"<non-text payload len={len(payload)}>"
                         except Exception:
                             payload_obj = f"<non-text payload len={len(payload)}>"
                         # 打印前 200 字符 + 前 32 字节 hex，便于定位错误码
