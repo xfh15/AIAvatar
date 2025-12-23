@@ -689,7 +689,13 @@ class DoubaoTTS3(BaseTTS):
             except websockets.exceptions.InvalidStatus as e:
                 # 处理 WebSocket 连接认证失败
                 status_code = e.response.status_code if hasattr(e, 'response') else None
-                headers = dict(e.response.headers) if hasattr(e, "response") and e.response and e.response.headers else {}
+                headers = {}
+                if hasattr(e, "response") and e.response and e.response.headers:
+                    try:
+                        # websockets.Headers 可能有重复 key，使用 keys() + get_all 避免 MultipleValuesError
+                        headers = {k: e.response.headers.get_all(k) for k in e.response.headers.keys()}
+                    except Exception as err:
+                        headers = {"_parse_error": str(err)}
                 if status_code == 401:
                     logger.error("DoubaoTTS3 认证失败 (401 Unauthorized)")
                     logger.error(f"请检查 config.yml 中的 DOUBAO_APPID 和 DOUBAO_TOKEN 是否正确")
