@@ -551,6 +551,7 @@ class DoubaoTTS3(BaseTTS):
                 "X-Api-Access-Key": self.token,
                 "X-Api-Resource-Id": resource_id,
                 "X-Api-Connect-Id": connect_id,
+                "Authorization": f"Bearer;{self.token}",
             }
             
             first = True
@@ -688,6 +689,7 @@ class DoubaoTTS3(BaseTTS):
             except websockets.exceptions.InvalidStatus as e:
                 # 处理 WebSocket 连接认证失败
                 status_code = e.response.status_code if hasattr(e, 'response') else None
+                headers = dict(e.response.headers) if hasattr(e, "response") and e.response and e.response.headers else {}
                 if status_code == 401:
                     logger.error("DoubaoTTS3 认证失败 (401 Unauthorized)")
                     logger.error(f"请检查 config.yml 中的 DOUBAO_APPID 和 DOUBAO_TOKEN 是否正确")
@@ -699,7 +701,7 @@ class DoubaoTTS3(BaseTTS):
                     logger.error("3. 账户权限不足，未开通双向TTS 3.0服务")
                     raise ValueError("DoubaoTTS3 认证失败，请检查配置") from e
                 else:
-                    logger.error(f"DoubaoTTS3 WebSocket连接失败: HTTP {status_code}")
+                    logger.error(f"DoubaoTTS3 WebSocket连接失败: HTTP {status_code}, headers: {headers}")
                     raise
         except Exception as e:
             logger.exception(f'DoubaoTTS3 error: {e}')
