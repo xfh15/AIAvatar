@@ -146,4 +146,5 @@ def llm_response(message, nerfreal: BaseReal, session_id=None):
     # 保存到对话历史
     add_to_history(session_id, 'user', message)
     add_to_history(session_id, 'assistant', assistant_response)
+    logger.debug(f"LLM output (session {session_id}): {assistant_response[:200]}{'...' if len(assistant_response) > 200 else ''}")
     

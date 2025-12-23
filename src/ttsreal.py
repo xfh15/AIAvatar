@@ -335,8 +335,10 @@ class DoubaoTTS(BaseTTS):
         text, textevent = msg
         first = True
         last_stream = np.array([], dtype=np.float32)
+        chunk_count = 0
         async for chunk in audio_stream:
             if chunk is not None and len(chunk) > 0:
+                chunk_count += 1
                 stream = np.frombuffer(chunk, dtype=np.int16).astype(np.float32) / 32767
                 
                 # 拼接音频流
@@ -356,6 +358,8 @@ class DoubaoTTS(BaseTTS):
                     streamlen -= self.chunk
                     idx += self.chunk
                 last_stream = stream[idx:]
+        if chunk_count == 0:
+            logger.error(f"DoubaoTTS produced no audio chunks for text: {text[:50]}{'...' if len(text) > 50 else ''}")
         
         # 发送结束事件(使用静音帧)
         eventpoint = {'status': 'end', 'text': text}
